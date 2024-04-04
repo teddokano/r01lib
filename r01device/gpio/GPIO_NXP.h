@@ -10,6 +10,7 @@
 
 #include	"r01lib.h"
 #include	"I2C_device.h"
+#include	"GPIO_SPI.h"
 #include	<stdint.h>
 
 /** Descriptors for accessing GPIO
@@ -33,6 +34,7 @@ enum access_word : uint8_t
 	NUM_access_word, 
 };
 
+
 /** GPIO_base class
  *	
  *  @class GPIO_base
@@ -40,7 +42,7 @@ enum access_word : uint8_t
  *	This class is a base class for all GPIO devices
  *	All actual device class will be derived from this
  */
-class GPIO_base : public I2C_device
+class GPIO_base
 {
 public:
 	enum board {
@@ -64,6 +66,16 @@ public:
 	 */
 	GPIO_base( I2C& interface, uint8_t i2c_address, int nbits, const uint8_t* arp, uint8_t ai );
 
+	/** Constractor
+	 * 
+	 * @param interface I2C instance
+	 * @param i2c_address I2C target address
+	 * @param nbits	Number of IO bits
+	 * @param arp	Pointer to register access reference table
+	 * @param ai	Auto-increment flag
+	 */
+	GPIO_base( SPI& interface, uint8_t dev_address, int nbits, const uint8_t* arp, uint8_t ai );
+
 	/** Destractor */
 	virtual ~GPIO_base();
 
@@ -76,7 +88,7 @@ public:
 	 *	
 	 * @param env	This argument can be given as "GPIO_base::NONE" ot "GPIO_base::ARDUINO_SHIELD"
 	 */
-	void		begin( board env = NONE );
+	virtual void	begin( board env = NONE );
 	
 	/** Output, single port
 	 * 
@@ -212,15 +224,16 @@ public:
 
 	static void	print_bin( uint8_t v );
 	
+	void init( void );
+
 private:
 	const uint8_t*	arp;
 	const uint8_t	auto_increment;
 	bool			endian;
+	Serial_device	*intfp;
 	
 	static constexpr int RESET_PIN	= D8;
 	static constexpr int ADDR_PIN	= D9;
-	
-	void init( void );
 };
 
 /** PCA9554 class
@@ -284,7 +297,7 @@ public:
 	 *	
 	 * @param env	This argument can be given as "PCA9554::NONE" ot "PCA9554::ARDUINO_SHIELD"
 	 */
-	void		begin( board env = NONE );
+	virtual void	begin( board env = NONE );
 	
 	/** Output, single port
 	 * 
@@ -565,7 +578,7 @@ public:
 	 *	
 	 * @param env	This argument can be given as "PCA9555::NONE" ot "PCA9555::ARDUINO_SHIELD"
 	 */
-	void		begin( board env = NONE );
+	virtual void	begin( board env = NONE );
 	
 	/** Output, single port
 	 * 
@@ -868,7 +881,7 @@ public:
 	 *	
 	 * @param env	This argument can be given as "PCAL6408A::NONE" ot "PCAL6408A::ARDUINO_SHIELD"
 	 */
-	void		begin( board env = NONE );
+	virtual void	begin( board env = NONE );
 	
 	/** Output, single port
 	 * 
@@ -1156,7 +1169,7 @@ public:
 	 *	
 	 * @param env	This argument can be given as "PCAL6416A::NONE" ot "PCAL6416A::ARDUINO_SHIELD"
 	 */
-	void		begin( board env = NONE );
+	virtual void	begin( board env = NONE );
 	
 	/** Output, single port
 	 * 
@@ -1454,7 +1467,7 @@ public:
 	 *	
 	 * @param env	This argument can be given as "PCAL6524::NONE" ot "PCAL6524::ARDUINO_SHIELD"
 	 */
-	void		begin( board env = NONE );
+	virtual void	begin( board env = NONE );
 	
 	/** Output, single port
 	 * 
@@ -1755,7 +1768,7 @@ public:
 	 *	
 	 * @param env	This argument can be given as "PCAL6534::NONE" ot "PCAL6534::ARDUINO_SHIELD"
 	 */
-	void		begin( board env = NONE );
+	virtual void	begin( board env = NONE );
 	
 	/** Output, single port
 	 * 
@@ -1973,5 +1986,94 @@ public:
 	void bit_op16( uint8_t reg, uint16_t mask, uint16_t value );
 #endif	//	DOXYGEN_ONLY
 };
+
+
+
+/** PCAL97xx_base class
+ *	
+ *  @class PCAL97xx_base
+ *
+ *	Yet another abstraction class for PCAL6xxx devices
+ *	This class is just passing parameters to GPIO_base class in this version
+ */
+class PCAL97xx_base : public GPIO_base
+{
+public:
+	PCAL97xx_base( SPI& interface, uint8_t dev_address, const int nbits, const uint8_t arp[], uint8_t ai );
+	virtual ~PCAL97xx_base();
+};
+
+/** PCAL9722 class
+ *	
+ *  @class PCAL9722
+ */
+class PCAL9722 : public PCAL97xx_base
+{
+public:
+	/** Name of the PCAL9722 registers */
+	enum reg_num {
+		Input_Port_0, Input_Port_1, Input_Port_2, reserved0, 
+		Output_Port_0, Output_Port_1, Output_Port_2, reserved1, 
+		Polarity_Inversion_port_0, Polarity_Inversion_port_1, Polarity_Inversion_port_2, reserved2, 
+		Configuration_port_0, Configuration_port_1, Configuration_port_2, 
+		Output_drive_strength_register_port_0A=0x40, Output_drive_strength_register_port_0B, 
+		Output_drive_strength_register_port_1A, Output_drive_strength_register_port_1B, 
+		Output_drive_strength_register_port_2A, Output_drive_strength_register_port_2B, 
+		reserved3, reserved4, 
+		Input_latch_register_port_0, Input_latch_register_port_1, Input_latch_register_port_2, reserved5, 
+		Pull_up_pull_down_enable_register_port_0, Pull_up_pull_down_enable_register_port_1, Pull_up_pull_down_enable_register_port_2, reserved6, 
+		Pull_up_pull_down_selection_register_port_0, Pull_up_pull_down_selection_register_port_1, Pull_up_pull_down_selection_register_port_2, reserved7, 
+		Interrupt_mask_register_port_0, Interrupt_mask_register_port_1, Interrupt_mask_register_port_2, reserved8, 
+		Interrupt_status_register_port_0, Interrupt_status_register_port_1, Interrupt_status_register_port_2, reserved9, 
+		Output_port_configuration_register, reserved10, reserved11, reserved12, 
+		Interrupt_edge_register_port_0A, Interrupt_edge_register_port_0B, 
+		Interrupt_edge_register_port_1A, Interrupt_edge_register_port_1B, 
+		Interrupt_edge_register_port_2A, Interrupt_edge_register_port_2B, 
+		reserved13, reserved14, 
+		Interrupt_clear_register_port_0, Interrupt_clear_register_port_1, Interrupt_clear_register_port_2, reserved15, 
+		Input_status_port_0, Input_status_port_1, Input_status_port_2, reserved16, 
+		Individual_pin_output_port_0_configuration_register, Individual_pin_output_port_1_configuration_register, Individual_pin_output_port_2_configuration_register, reserved17, 
+		Switch_debounce_enable_0, Switch_debounce_enable_1, Switch_debounce_count, 
+	};
+	
+	/** Constractor
+	 * 
+	 * @param interface I2C instance
+	 * @param i2c_address I2C target address
+	 */
+	PCAL9722( SPI& interface, uint8_t i2c_address = (0x40 >> 1) + 0 );
+
+	/** Destractor */
+	virtual ~PCAL9722();
+
+	/** Device/board initialization
+	 *
+	 * This method is needed to initialize Arduino-shield type evaluation boards from NXP. 
+	 * This method takes one argument of "PCAL6534::ARDUINO_SHIELD" to set RESET and ADDRESS pins. 
+	 * 
+	 * If the devoce is used as it self, this method doesn't need to be called. 
+	 *	
+	 * @param env	This argument can be given as "PCAL6534::NONE" ot "PCAL6534::ARDUINO_SHIELD"
+	 */
+	void	begin( board env = NONE );
+	
+	static constexpr uint8_t	access_ref[ NUM_access_word ]	= {
+		Input_Port_0,									//	IN,
+		Output_Port_0,									//	OUT
+		Polarity_Inversion_port_0,						//	POLARITY
+		Configuration_port_0,							//	CONFIG
+		Output_drive_strength_register_port_0A,			//	DRIVE_STRENGTH
+		Input_latch_register_port_0,					//	LATCHLATCH
+		Pull_up_pull_down_enable_register_port_0,		//	PULL_UD_EN
+		Pull_up_pull_down_selection_register_port_0,	//	PULL_UD_SEL
+		Interrupt_mask_register_port_0,					//	INT_MASK
+		Interrupt_status_register_port_0,				//	INT_STATUS
+		Output_port_configuration_register,				//	OUTPUT_PORT_CONFIG
+	};
+
+private:
+	static constexpr int RESET_PIN_PCAL9722	= D6;
+};
+
 
 #endif //	ARDUINO_GPIO_NXP_ARD_H

@@ -5,13 +5,13 @@ SPI_for_RTC::~SPI_for_RTC() {}
 
 void SPI_for_RTC::txrx( uint8_t *data, int size )
 {
-	uint8_t	r_data[ 128 ];
+	uint8_t	r_data[ size ];
 	
 	spi.write( data, r_data, size );
 	memcpy( data, r_data, size );
 }
 
-void SPI_for_RTC::reg_w( uint8_t reg_adr, uint8_t *data, int size )
+int SPI_for_RTC::reg_w( uint8_t reg_adr, const uint8_t *data, uint16_t size )
 {
 	uint8_t	v[ size + 1 ];
 	
@@ -19,16 +19,20 @@ void SPI_for_RTC::reg_w( uint8_t reg_adr, uint8_t *data, int size )
 	memcpy( v + 1, data, size );
 	
 	txrx( v, sizeof( v ) );
+	
+	return 0;
 }
 
-void SPI_for_RTC::reg_w( uint8_t reg_adr, uint8_t data )
+int SPI_for_RTC::reg_w( uint8_t reg_adr, uint8_t data )
 {
 	uint8_t	v[]	= { reg_adr, data };
 	
 	txrx( v, sizeof( v ) );
+
+	return 0;
 }
 
-void SPI_for_RTC::reg_r( uint8_t reg_adr, uint8_t *data, int size )
+int SPI_for_RTC::reg_r( uint8_t reg_adr, uint8_t *data, uint16_t size )
 {
 	uint8_t	v[ size + 1 ];
 	
@@ -39,6 +43,8 @@ void SPI_for_RTC::reg_r( uint8_t reg_adr, uint8_t *data, int size )
 	txrx( v, sizeof( v ) );
 	
 	memcpy( data, v + 1, size );
+
+	return 0;
 }
 
 uint8_t	SPI_for_RTC::reg_r( uint8_t reg_adr )

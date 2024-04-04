@@ -2,13 +2,23 @@
 
 /* ******** GPIO_base ******** */
 
-GPIO_base::GPIO_base( I2C& interface, uint8_t i2c_address, int nbits, const uint8_t* ar, uint8_t ai  ) :
-	I2C_device( interface, i2c_address ), 
+GPIO_base::GPIO_base( I2C& interface, uint8_t i2c_address, int nbits, const uint8_t* ar, uint8_t ai ) :
 	n_bits( nbits ),
 	n_ports( (nbits + 7) / 8 ),
 	arp( ar ),
 	auto_increment( ai )
 {
+	intfp	= new I2C_device( interface, i2c_address );
+	init();
+}
+
+GPIO_base::GPIO_base( SPI& interface, uint8_t dev_address, int nbits, const uint8_t* ar, uint8_t ai ) :
+	n_bits( nbits ),
+	n_ports( (nbits + 7) / 8 ),
+	arp( ar ),
+	auto_increment( ai )
+{
+	intfp	= new GPIO_SPI( interface, dev_address );
 	init();
 }
 
@@ -22,6 +32,7 @@ void GPIO_base::init( void )
 
 GPIO_base::~GPIO_base()
 {
+	delete intfp;
 }
 
 void GPIO_base::begin( board env )
@@ -44,9 +55,9 @@ void GPIO_base::begin( board env )
 void GPIO_base::output( int port, uint8_t value, uint8_t mask )
 {
 	if ( mask )
-		bit_op8( *(arp + OUT) + port, mask, value );
+		intfp->bit_op8( *(arp + OUT) + port, mask, value );
 
-	write_r8( *(arp + OUT) + port, value );
+	intfp->write_r8( *(arp + OUT) + port, value );
 }
 
 void GPIO_base::output( const uint8_t *vp )
@@ -56,7 +67,7 @@ void GPIO_base::output( const uint8_t *vp )
 
 uint8_t GPIO_base::input( int port )
 {
-	return read_r8( *(arp + IN) + port );
+	return intfp->read_r8( *(arp + IN) + port );
 }
 
 uint8_t* GPIO_base::input( uint8_t *vp )
@@ -69,9 +80,9 @@ uint8_t* GPIO_base::input( uint8_t *vp )
 void GPIO_base::config( int port, uint8_t config, uint8_t mask )
 {
 	if ( mask )
-		bit_op8( *(arp + CONFIG) + port, mask, config );
+		intfp->bit_op8( *(arp + CONFIG) + port, mask, config );
 
-	write_r8( *(arp + CONFIG) + port, config );
+	intfp->write_r8( *(arp + CONFIG) + port, config );
 }
 
 void GPIO_base::config( const uint8_t* vp )
@@ -82,11 +93,11 @@ void GPIO_base::config( const uint8_t* vp )
 void GPIO_base::write_port( access_word w, const uint8_t* vp )
 {
 	if ( auto_increment ) {
-		reg_w( auto_increment | *(arp + w), vp, n_ports );		
+		intfp->reg_w( auto_increment | *(arp + w), vp, n_ports );		
 	}
 	else {
 		for ( int i = 0; i < n_ports; i++ )
-			write_r8( *(arp + w) + i, *vp++ );
+			intfp->write_r8( *(arp + w) + i, *vp++ );
 	}
 }
 
@@ -108,22 +119,22 @@ void GPIO_base::write_port16( access_word w, const uint16_t* vp )
 	int	n_bytes	= (n_bits * 2 + 7) / 8;
 
 	if ( auto_increment ) {
-		reg_w( auto_increment | *(arp + w), (uint8_t*)b, n_bytes );		
+		intfp->reg_w( auto_increment | *(arp + w), (uint8_t*)b, n_bytes );		
 	}
 	else {
 		for ( int i = 0; i < n_bytes; i++ )
-			write_r8( *(arp + w) + i, b[ i ] );
+			intfp->write_r8( *(arp + w) + i, b[ i ] );
 	}
 }
 
 uint8_t* GPIO_base::read_port( access_word w, uint8_t* vp )
 {
 	if ( auto_increment ) {
-		reg_r( auto_increment | *(arp + w), vp, n_ports );		
+		intfp->reg_r( auto_increment | *(arp + w), vp, n_ports );		
 	}
 	else {
 		for ( int i = 0; i < n_ports; i++ )
-			*(vp + i)	= read_r8( *(arp + w) + i );
+			*(vp + i)	= intfp->read_r8( *(arp + w) + i );
 	}
 	
 	return vp;
@@ -134,11 +145,11 @@ uint16_t*  GPIO_base::read_port16( access_word w, uint16_t* vp )
 	int	n_bytes	= (n_bits * 2 + 7) / 8;
 	
 	if ( auto_increment ) {
-		reg_r( auto_increment | *(arp + w), (uint8_t*)vp, n_bytes );	
+		intfp->reg_r( auto_increment | *(arp + w), (uint8_t*)vp, n_bytes );	
 	}
 	else {
 		for ( int i = 0; i < n_bytes; i++ )
-			*(vp + i)	= read_r8( *(arp + w) + i );		
+			*(vp + i)	= intfp->read_r8( *(arp + w) + i );		
 	}
 		
 
@@ -156,22 +167,22 @@ uint16_t*  GPIO_base::read_port16( access_word w, uint16_t* vp )
 
 void GPIO_base::write_port( access_word w, uint8_t value, int port_num )
 {
-	write_r8( *(arp + w) + port_num, value );
+	intfp->write_r8( *(arp + w) + port_num, value );
 }
 
 void GPIO_base::write_port16( access_word w, uint16_t value, int port_num )
 {
-	write_r16( *(arp + w) + port_num, value );
+	intfp->write_r16( *(arp + w) + port_num, value );
 }
 
 uint8_t GPIO_base::read_port( access_word w, int port_num )
 {
-	return read_r8( *(arp + w) + port_num );
+	return intfp->read_r8( *(arp + w) + port_num );
 }
 
 uint16_t GPIO_base::read_port16( access_word w, int port_num )
 {
-	return read_r16( *(arp + w) + port_num );
+	return intfp->read_r16( *(arp + w) + port_num );
 }
 
 void GPIO_base::print_bin( uint8_t v )
@@ -183,7 +194,6 @@ void GPIO_base::print_bin( uint8_t v )
 
 
 /* ******** PCA9554 ******** */
-
 
 PCA9554::PCA9554( I2C& interface, uint8_t i2c_address ) :
 	GPIO_base( interface, i2c_address, 8, access_ref, 0x00 )
@@ -273,3 +283,44 @@ PCAL6534::~PCAL6534()
 }
 
 constexpr uint8_t PCAL6534::access_ref[];
+
+
+/* ******** PCAL9722 ******** */
+
+PCAL97xx_base::PCAL97xx_base( SPI& interface, uint8_t dev_address, const int nbits, const uint8_t arp[], uint8_t ai ) :
+	GPIO_base( interface, dev_address, nbits, arp, ai )
+{
+}
+
+PCAL97xx_base::~PCAL97xx_base()
+{
+}
+
+
+
+
+PCAL9722::PCAL9722( SPI& interface, uint8_t i2c_address ) :
+	PCAL97xx_base( interface, i2c_address, 24, access_ref, 0 )
+{
+}
+
+PCAL9722::~PCAL9722()
+{
+}
+
+void PCAL9722::begin( board env )
+{
+	if ( env ) {
+		DigitalOut	reset( RESET_PIN_PCAL9722, 1 );
+
+		reset	= 0;
+		wait( 0.001 );
+		
+		reset	= 1;
+		wait( 0.001 );
+	}
+}
+
+constexpr uint8_t PCAL9722::access_ref[];
+
+

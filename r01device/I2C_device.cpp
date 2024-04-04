@@ -1,5 +1,12 @@
 #include "I2C_device.h"
 
+Serial_device::Serial_device() {}
+Serial_device::~Serial_device() {}
+
+void 		Serial_device::write_r16( uint8_t reg, uint16_t val ) {}
+uint16_t	Serial_device::read_r16( uint8_t reg ) { return 0; }
+void		Serial_device::bit_op16( uint8_t reg, uint16_t mask, uint16_t value ) {}
+
 I2C_device::I2C_device( I2C& interface, uint8_t i2c_address, bool repeated_start_enable ) : i2c( interface ), i2c_addr( i2c_address ), rs_dis( !repeated_start_enable )
 {
 }
