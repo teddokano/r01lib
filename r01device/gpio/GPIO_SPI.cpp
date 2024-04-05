@@ -13,7 +13,7 @@ int GPIO_SPI::reg_w( uint8_t reg_adr, const uint8_t *data, uint16_t size )
 	uint8_t	w_data[ size + 2 ];
 	uint8_t	r_data[ size + 2 ];
 	
-	w_data[ 0 ]	= dev_addr;
+	w_data[ 0 ]	= dev_addr << 1;
 	w_data[ 1 ]	= reg_adr;
 	memcpy( w_data + 2, data, size );
 	
@@ -27,7 +27,7 @@ int GPIO_SPI::reg_w( uint8_t reg_adr, uint8_t data )
 	uint8_t	w_data[ 3 ];
 	uint8_t	r_data[ 3 ];
 	
-	w_data[ 0 ]	= dev_addr;
+	w_data[ 0 ]	= dev_addr << 1;
 	w_data[ 1 ]	= reg_adr;
 	w_data[ 2 ]	= data;
 	
@@ -41,7 +41,7 @@ int GPIO_SPI::reg_r( uint8_t reg_adr, uint8_t *data, uint16_t size )
 	uint8_t	w_data[ size + 2 ]	= { 0 };
 	uint8_t	r_data[ size + 2 ];
 
-	w_data[ 0 ]	= dev_addr;
+	w_data[ 0 ]	= (dev_addr << 1) | 0x1;
 	w_data[ 1 ]	= reg_adr;
 
 	spi.write( w_data, r_data, size + 2 );
@@ -56,7 +56,7 @@ uint8_t GPIO_SPI::reg_r( uint8_t reg_adr )
 	uint8_t	w_data[ 3 ];
 	uint8_t	r_data[ 3 ];
 	
-	w_data[ 0 ]	= dev_addr;
+	w_data[ 0 ]	= (dev_addr << 1) | 0x1;
 	w_data[ 1 ]	= reg_adr;
 	w_data[ 2 ]	= 0;
 	

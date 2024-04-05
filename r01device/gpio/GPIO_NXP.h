@@ -2041,7 +2041,7 @@ public:
 	 * @param interface I2C instance
 	 * @param i2c_address I2C target address
 	 */
-	PCAL9722( SPI& interface, uint8_t i2c_address = (0x40 >> 1) + 0 );
+	PCAL9722( SPI& interface, uint8_t dev_address = (0x40 >> 1) + 0 );
 
 	/** Destractor */
 	virtual ~PCAL9722();
