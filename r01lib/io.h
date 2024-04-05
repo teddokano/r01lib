@@ -222,6 +222,10 @@ enum { 	D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12, D13, D18, D19,
 class DigitalInOut: public Obj
 {
 public:
+	enum	direction {
+		INPUT	= kGPIO_DigitalInput, 
+		OUTPUT	= kGPIO_DigitalOutput
+	};
 	/** Create a DigitalInOut instance with specified pins
 	 *
 	 * @param pin_num pin number
@@ -269,6 +273,8 @@ public:
 	operator	bool();
 
 protected:
+	void direction( bool dir );
+	
 	uint8_t		_pn; 
 	GPIO_Type	*gpio_n;
 	PORT_Type	*port_n;

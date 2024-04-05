@@ -18,6 +18,7 @@ extern "C" {
 #include	"io.h"
 #include	"Ticker.h"
 #include	"InterruptIn.h"
+#include	"BusInOut.h"
 #include	"mcu.h"
 
 #endif // R01LIB_R01LIB_H

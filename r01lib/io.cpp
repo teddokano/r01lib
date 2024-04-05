@@ -108,12 +108,20 @@ bool DigitalInOut::value( void )
 
 void DigitalInOut::output( void )
 {
-	_dir	= kGPIO_DigitalOutput;
+	_dir	= OUTPUT;
+	direction( _dir );
 }
 
 void DigitalInOut::input( void )
 {
-	_dir	= kGPIO_DigitalInput;
+	_dir	= INPUT;
+	direction( _dir );
+}
+
+void DigitalInOut::direction( bool dir )
+{
+	gpio_pin_config_t led_config = { (gpio_pin_direction_t)dir, _value };
+	GPIO_PinInit( gpio_n, gpio_pin, &led_config );
 }
 
 void DigitalInOut::pin_mux( int mux )
