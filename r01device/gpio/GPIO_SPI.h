@@ -118,8 +118,9 @@ public:
 	void bit_op16( uint8_t reg, uint16_t mask, uint16_t value );
 
 private:
-	SPI&		spi;
-	uint8_t		dev_addr;
+	SPI&						spi;
+	uint8_t						dev_addr;
+	constexpr static uint8_t	auto_increment	= 0x80;	
 };
 
 #endif //	ARDUINO_GPIO_SPI_H

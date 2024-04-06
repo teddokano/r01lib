@@ -300,7 +300,7 @@ PCAL97xx_base::~PCAL97xx_base()
 
 
 PCAL9722::PCAL9722( SPI& interface, uint8_t i2c_address ) :
-	PCAL97xx_base( interface, i2c_address, 24, access_ref, 0 )
+	PCAL97xx_base( interface, i2c_address, 24, access_ref, 0x80 )
 {
 }
 
