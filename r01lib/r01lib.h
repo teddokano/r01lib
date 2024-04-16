@@ -12,6 +12,13 @@ extern "C" {
 #include	"fsl_debug_console.h"
 }
 
+#if (defined(SDK_DEBUGCONSOLE) && (SDK_DEBUGCONSOLE == DEBUGCONSOLE_REDIRECT_TO_SDK))
+#define printf	DbgConsole_Printf
+#define scanf	DbgConsole_Scanf
+#define putchar	DbgConsole_Putchar
+#define getchar	DbgConsole_Getchar
+#endif
+
 #include	"i3c.h"
 #include	"i2c.h"
 #include	"spi.h"

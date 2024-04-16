@@ -109,7 +109,7 @@ void wait( float delayTime_sec )
 
 void panic( const char *s )
 {
-	printf( "error: %s", s );
+	PRINTF( "error: %s", s );
 
 	typedef struct			{ int on; int off; }	single_code_t;
 	static single_code_t	code[]	= { { 1, 1 }, { 1, 1 }, { 1, 3 }, { 3, 1 },  { 3, 1 }, { 3, 3 }, { 1, 1 }, { 1, 1 }, { 1, 7 } };
