@@ -12,6 +12,7 @@
 #include	"I2C_device.h"
 #include	"GPIO_SPI.h"
 #include	<stdint.h>
+#include	<memory>
 
 /** Descriptors for accessing GPIO
  *
@@ -230,7 +231,7 @@ private:
 	const uint8_t*	arp;
 	const uint8_t	auto_increment;
 	bool			endian;
-	Serial_device	*intfp;
+	std::unique_ptr<Serial_device>	intfp;
 	
 	static constexpr int RESET_PIN	= D8;
 	static constexpr int ADDR_PIN	= D9;

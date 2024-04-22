@@ -6,9 +6,9 @@ GPIO_base::GPIO_base( I2C& interface, uint8_t i2c_address, int nbits, const uint
 	n_bits( nbits ),
 	n_ports( (nbits + 7) / 8 ),
 	arp( ar ),
-	auto_increment( ai )
+	auto_increment( ai ),
+	intfp( new I2C_device( interface, i2c_address ) )
 {
-	intfp	= new I2C_device( interface, i2c_address );
 	init();
 }
 
@@ -16,9 +16,9 @@ GPIO_base::GPIO_base( SPI& interface, uint8_t dev_address, int nbits, const uint
 	n_bits( nbits ),
 	n_ports( (nbits + 7) / 8 ),
 	arp( ar ),
-	auto_increment( ai )
+	auto_increment( ai ),
+	intfp( new GPIO_SPI( interface, dev_address ) )
 {
-	intfp	= new GPIO_SPI( interface, dev_address );
 	init();
 }
 
@@ -32,7 +32,6 @@ void GPIO_base::init( void )
 
 GPIO_base::~GPIO_base()
 {
-	delete intfp;
 }
 
 void GPIO_base::begin( board env )
