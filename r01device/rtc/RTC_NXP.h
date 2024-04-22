@@ -8,11 +8,11 @@
 #ifndef ARDUINO_RTC_DRIVER_NXP_ARD_H
 #define ARDUINO_RTC_DRIVER_NXP_ARD_H
 
-#include "r01lib.h"
-#include "I2C_device.h"
-#include <stdint.h>
-#include <time.h>
-
+#include	"r01lib.h"
+#include	"I2C_device.h"
+#include	<stdint.h>
+#include	<time.h>
+#include	<memory>
 
 /** RTC_NXP class
  *	
@@ -332,7 +332,7 @@ private:
 		{ INT_A_MASK1, INT_A_MASK2, },
 		{ INT_B_MASK1, INT_B_MASK2, },
 	};
-	Serial_device	*intfp;
+	std::unique_ptr<Serial_device>	intfp;
 };
 
 /** PCF85063A class

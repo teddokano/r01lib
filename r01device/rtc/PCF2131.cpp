@@ -1,18 +1,17 @@
 #include	"rtc/RTC_NXP.h"
 
 PCF2131::PCF2131( I2C& interface, uint8_t i2c_address )
+	: intfp( new I2C_device( interface, i2c_address ) )
 {
-	intfp	= new I2C_device( interface, i2c_address );
 }
 
 PCF2131::PCF2131( SPI& interface )
+	: intfp( new SPI_for_RTC( interface ) )
 {
-	intfp	= new SPI_for_RTC( interface );
 }
 
 PCF2131::~PCF2131()
 {
-	delete intfp;
 }
 
 void PCF2131::begin( void )
