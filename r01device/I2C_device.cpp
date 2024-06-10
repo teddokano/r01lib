@@ -20,12 +20,6 @@ void I2C_device::repeated_start_enable( bool en )
 	rs_dis	= !en;
 }
 
-bool I2C_device::ping( void )
-{
-	uint8_t	dummy	= 0;
-	return !i2c.write( i2c_addr, &dummy, 0 );
-}
-
 void I2C_device::scan( I2C& target_i2c, uint8_t stop )
 {
 	bool  result[ 128 ];
@@ -148,5 +142,27 @@ void I2C_device::bit_op16( uint8_t reg, uint16_t mask, uint16_t value )
 	v	|= value;
 
 	write_r16( reg, v );
+}
+
+uint8_t I2C_device::address( void )
+{
+	return i2c_addr;
+}
+
+void I2C_device::address_overwrite( uint8_t address )
+{
+	i2c_addr	= address;
+}
+
+void I2C_device::ccc_set( CCC ccc, uint8_t data )
+{
+	i2c.ccc_set( ccc, i2c_addr, data );
+}
+
+uint8_t* I2C_device::ccc_get( CCC ccc, uint8_t *dp, uint8_t length )
+{
+	i2c.ccc_get( ccc, i2c_addr, dp, length );
+	
+	return dp;
 }
 

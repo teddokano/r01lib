@@ -4,7 +4,7 @@
 
 /* PCA8561 class ******************************************/
 
-PCA8561::PCA8561( I2C& wire, uint8_t i2c_address ) : I2C_device( wire, i2c_address )
+PCA8561::PCA8561( I2C& interface, uint8_t i2c_address ) : I2C_device( interface, i2c_address )
 {
 	init();
 }

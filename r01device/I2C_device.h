@@ -69,12 +69,6 @@ public:
 	 */
 	void repeated_start_enable( bool en = true );
 	
-	/** Ping the device
-	 *
-	 * @return true when ACK 
-	 */
-	bool ping( void );
-	
 	/** Send data
 	 * 
 	 * @param data pointer to data buffer
@@ -181,10 +175,43 @@ public:
 	/** scan (class method)
 	 */
 	static void scan( I2C& target_i2c, uint8_t stop = 128 );
-		
-private:
+
+	/** address
+	 * @return target address in 7bit notation (right justified)
+	 */
+	uint8_t address( void );
+
+	/**
+	 *	FOR I3C only
+	 */
+	
+	/** Target address overwrite
+	 *
+	 * @param address new address given by Dynamic address assignment
+	 */		
+	void				address_overwrite( uint8_t address );
+
+	/** Set Commion Command Code
+	 *
+	 * @param ccc Commion Command Code
+	 * @param data data for setting
+	 */		
+	virtual void ccc_set( CCC ccc, uint8_t data );
+
+	/** Get Commion Command Code
+	 *
+	 * @param ccc Commion Command Code
+	 * @param dp pointer to data array
+	 * @param length data array length
+	 * @return pointer to data array
+	 */		
+	virtual uint8_t* ccc_get( CCC ccc, uint8_t *dp, uint8_t length );
+
+
+protected:
 	I2C&		i2c;
 	uint8_t		i2c_addr;
+private:
 	bool		rs_dis;
 };
 

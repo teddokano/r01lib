@@ -82,12 +82,6 @@ public:
 	void clear( bool no_flush = false );
 
 #if DOXYGEN_ONLY
-	/** Ping the device
-	 *
-	 * @return true when ACK 
-	 */
-	bool ping( void );
-		
 	/** Multiple register write
 	 * 
 	 * @param reg register index/address/pointer
