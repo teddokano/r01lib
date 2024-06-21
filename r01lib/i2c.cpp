@@ -1,11 +1,8 @@
 /*
- * Copyright 2024 NXP
- * All rights reserved.
+ *  @author Tedd OKANO
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ *  Released under the MIT license License
  */
-
-/*  Standard C Included Files */
 
 extern "C" {
 #include <stdio.h>

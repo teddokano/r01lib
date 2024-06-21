@@ -1,13 +1,8 @@
 /*
- * Copyright 2024 NXP
+ *  @author Tedd OKANO
  *
- * SPDX-License-Identifier: BSD-3-Clause
- *
- * This code based on a sample projects: 
- *    "frdmmcxa153_i3c_master_read_sensor_p3t1755" from SDK_2.14.2_FRDM-MCXA153 and 
- *    "lpcxpresso860max_i3c_master_read_sensor_icm42688p" from SDK_2.15.000_LPCXpresso860MAX
+ *  Released under the MIT license License
  */
-
 
 #include "r01lib.h"
 

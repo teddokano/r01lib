@@ -1,8 +1,7 @@
 /*
- * Copyright 2024 NXP
+ *  @author Tedd OKANO
  *
- * SPDX-License-Identifier: BSD-3-Clause
- *
+ *  Released under the MIT license License
  */
 
 extern "C" {
