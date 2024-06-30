@@ -235,32 +235,32 @@ public:
 
 	/** Destractor
 	 */
-	~DigitalInOut();
+	virtual ~DigitalInOut();
 	
 	/** Pin output seting
 	 *
 	 * @param value setting output
 	 */
-	void	value( bool value );
+	virtual void	value( bool value );
 
 	/** Pin input state read
 	 *
 	 * @return pin state
 	 */
-	bool	value( void );
+	virtual bool	value( void );
 	
 	/** Pin direction to set as output
 	 */
-	void	output( void );
+	virtual void	output( void );
 
 	/** Pin direction to set as in
 	 */
-	void	input( void );
+	virtual void	input( void );
 
 	/** Pin mux setting
 	 * This interface is provided to other class drivers to change pin config dynamically
 	 */
-	void	pin_mux( int mux );
+	virtual void	pin_mux( int mux );
 		
 	/** A short hand for setting pins
 	 */
@@ -297,7 +297,7 @@ public:
 	using DigitalInOut::operator=;
 
 	DigitalOut( uint8_t pin_num, bool value = 0 );
-	~DigitalOut();
+	virtual ~DigitalOut();
 };
 
 /** DigitalIn class
@@ -313,7 +313,7 @@ public:
 	using DigitalInOut::operator=;
 
 	DigitalIn( uint8_t pin_num );
-	~DigitalIn();
+	virtual ~DigitalIn();
 };
 
 #endif // R01LIB_IO_H

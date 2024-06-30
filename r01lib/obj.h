@@ -11,7 +11,7 @@ class Obj
 {
 public:
 	Obj( bool done = false );
-	~Obj();
+	virtual ~Obj();
 private:
 	static bool	init_done;
 };

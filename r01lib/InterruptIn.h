@@ -34,19 +34,19 @@ public:
 
 	/** Destractor for InterruptIn
 	 */
-	~InterruptIn();
+	virtual ~InterruptIn();
 	
 	/** Register callback function which is called by rising edge
 	 *
 	 * @param callback pointer to callback fuction
 	 */
-	void	rise( func_ptr callback );
+	virtual void	rise( func_ptr callback );
 
 	/** Register callback function which is called by falling edge
 	 *
 	 * @param callback pointer to callback fuction
 	 */
-	void	fall( func_ptr callback );
+	virtual void	fall( func_ptr callback );
 
 private:
 	void	regist( func_ptr callback, gpio_interrupt_config_t type );

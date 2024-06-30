@@ -32,14 +32,14 @@ public:
 	Ticker();
 	
 	/** Destractor to freeing SPI resource */
-	~Ticker();
+	virtual ~Ticker();
 	
 	/** Register callback function
 	 *
 	 * @param callback callback function
 	 * @param sec periodic cycle to call the callback
 	 */
-	void	attach( utick_callback_t callback, float sec );
+	virtual void	attach( utick_callback_t callback, float sec );
 
 private:
 	UTICK_Type	*utick_type;

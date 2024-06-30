@@ -38,13 +38,13 @@ public:
 	
 	/** Destractor to freeing SPI resource
 	 */
-	~SPI();
+	virtual ~SPI();
 
 	/** Frequency settings
 	 * 
 	 * @param frequency (option) define default SCLK frequency
 	 */
-	void	frequency( uint32_t frequency = SPI_FREQ );
+	virtual void	frequency( uint32_t frequency = SPI_FREQ );
 
 	/** mode setting
 	 *	SPI bus mode setting
@@ -55,7 +55,7 @@ public:
 	 *  
 	 * @param mode selecting mode 0~3
 	 */
-	void	mode( uint8_t mode = 0 );
+	virtual void	mode( uint8_t mode = 0 );
 
 	/** Data transfer on SPI
 	 *  
