@@ -46,7 +46,7 @@ public:
 
 	/** Destractor to freeing I3C resource
 	 */
-	~I2C();
+	virtual ~I2C();
 	
 	/** set SCL frequency
 	 *

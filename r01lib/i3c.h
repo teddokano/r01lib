@@ -76,7 +76,7 @@ public:
 
 	/** Destractor to freeing I3C resource
 	 */
-	~I3C();
+	virtual ~I3C();
 	
 	/** Frequency settings
 	 * 
@@ -86,18 +86,18 @@ public:
 	 * 
 	 *  @note use zero or I3C_DEFAULT_FREQ to set default frequency
 	 */
-	void		frequency( uint32_t i2c_freq, uint32_t i3c_od_freq, uint32_t i3c_pp_freq );
+	virtual void	frequency( uint32_t i2c_freq, uint32_t i3c_od_freq, uint32_t i3c_pp_freq );
 
 	/** All frequency settings reverted to default
 	 */
-	void		frequency( void );
+	virtual void	frequency( void );
 
 	/** mode setting
 	 *	I3C bus is configured to I3C-SDR, I3C-DDR or I2C
 	 *  
 	 * @param mode kI3C_TypeI3CSdr, kI3C_TypeI2C or kI3C_TypeI3CDdr
 	 */
-	void 		mode( MODE mode );
+	virtual void 	mode( MODE mode );
 
 	/** write transaction
 	 *
@@ -107,7 +107,7 @@ public:
 	 * @param stop (option) generate STOP condition: "false" to make repeated-start in next transaction
 	 * @return status_t
 	 */
-	status_t	write( uint8_t targ, const uint8_t *dp, int length, bool stop = STOP );	
+	virtual status_t	write( uint8_t targ, const uint8_t *dp, int length, bool stop = STOP );	
 
 	/** read transaction
 	 *
@@ -117,7 +117,7 @@ public:
 	 * @param stop (option) generate STOP condition: "false" to make repeated-start in next transaction
 	 * @return status_t
 	 */
-	status_t	read( uint8_t targ, uint8_t *dp, int length, bool stop = STOP );
+	virtual status_t	read( uint8_t targ, uint8_t *dp, int length, bool stop = STOP );
 	
 #ifdef	CUSTOM_REGISTAR_XFER
 	/** Register write (multiple byte data)
@@ -129,7 +129,7 @@ public:
 	 * @param length data length
 	 * @return status_t
 	 */
-	status_t	reg_write( uint8_t targ, uint8_t reg, const uint8_t *dp, int length, bool stop = STOP );
+	virtual status_t	reg_write( uint8_t targ, uint8_t reg, const uint8_t *dp, int length, bool stop = STOP );
 
 	/** Register read (multiple byte data)
 	 *	provideds interface for register read
@@ -140,20 +140,20 @@ public:
 	 * @param length data length
 	 * @return status_t
 	 */
-	status_t	reg_read( uint8_t targ, uint8_t reg, uint8_t *dp, int length, bool stop = STOP );
+	virtual status_t	reg_read( uint8_t targ, uint8_t reg, uint8_t *dp, int length, bool stop = STOP );
 #endif	// CUSTOM_REGISTAR_XFER
 	
 	/** check IBI status
 	 *  
 	 * @return target address of IBI initiated device or zero if no event happened
 	 */
-	uint8_t		check_IBI( void );
+	virtual uint8_t		check_IBI( void );
 	
 	/** set IBI callback function
 	 *  
 	 * @return target address of IBI initiated device or zero if no event happened
 	 */
-	void		set_IBI_callback( i3c_func_ptr fp );
+	virtual void		set_IBI_callback( i3c_func_ptr fp );
 
 	/** CCC broadcast
 	 *  
@@ -162,7 +162,7 @@ public:
 	 * @param length data length
 	 * @return status_t
 	 */
-	status_t	ccc_broadcast( uint8_t ccc, const uint8_t *dp, uint8_t length, bool first_time = false );
+	virtual status_t	ccc_broadcast( uint8_t ccc, const uint8_t *dp, uint8_t length, bool first_time = false );
 
 	/** CCC set
 	 *  
@@ -170,7 +170,7 @@ public:
 	 * @param data single byte data
 	 * @return status_t
 	 */
-	status_t	ccc_set( uint8_t ccc, uint8_t addr, uint8_t data );
+	virtual status_t	ccc_set( uint8_t ccc, uint8_t addr, uint8_t data );
 
 	/** CCC get
 	 *  
@@ -179,7 +179,7 @@ public:
 	 * @param length data length
 	 * @return status_t
 	 */
-	status_t	ccc_get( uint8_t ccc, uint8_t addr, uint8_t *dp, uint8_t length );
+	virtual status_t	ccc_get( uint8_t ccc, uint8_t addr, uint8_t *dp, uint8_t length );
 
 	/** perform DAA procedure
 	 *  
@@ -188,7 +188,7 @@ public:
 	 * @param device_list pointer to i3c_device_info_t array which is dealeared as static array in I3C driver
 	 * @return int for number of devices which has newly assigned addresses (max 10)
 	 */
-	int			DAA( const uint8_t *address_list, uint8_t list_length, i3c_device_info_t** device_list );
+	virtual int			DAA( const uint8_t *address_list, uint8_t list_length, i3c_device_info_t** device_list );
 	
 	/** master_ibi_callback
 	 *  interface function for SDK
