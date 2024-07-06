@@ -16,196 +16,446 @@
 #define	PIN_OUTPUT			kGPIO_DigitalOutput
 #define	PIN_INPUT			kGPIO_DigitalInput
 
-#define	DISABLED_GPIO		-1
-#define	DISABLED_PIN		0xFF
-
+/** pin names  */
 #ifdef	CPU_MCXN947VDF
-	#define A0_GPIO				DISABLED_GPIO
-	#define A1_GPIO				DISABLED_GPIO
-	#define A2_GPIO				0
-	#define A3_GPIO				0
-	#define A4_GPIO				0
-	#define A5_GPIO				0
-	#define D0_GPIO				4
-	#define D1_GPIO				4
-	#define D2_GPIO				0
-	#define D3_GPIO				1
-	#define D4_GPIO				0
-	#define D5_GPIO				1
-	#define D6_GPIO				1
-	#define D7_GPIO				0
-	#define D8_GPIO				0
-	#define D9_GPIO				0
-	#define D10_GPIO			0
-	#define D11_GPIO			0
-	#define D12_GPIO			0
-	#define D13_GPIO			0
-	#define D18_GPIO			4
-	#define D19_GPIO			4
-	#define SW2_GPIO			A5_GPIO
-	#define SW3_GPIO			0
-	#define	MB_AN_GPIO			DISABLED_GPIO
-	#define	MB_RST_GPIO			1
-	#define	MB_CS_GPIO			3
-	#define	MB_SCK_GPIO			3
-	#define	MB_MISO_GPIO		3
-	#define	MB_MOSI_GPIO		3
-	#define	MB_PWM_GPIO			3
-	#define	MB_INT_GPIO			5
-	#define	MB_RX_GPIO			1
-	#define	MB_TX_GPIO			1
-	#define	MB_SCL_GPIO			1
-	#define	MB_SDA_GPIO			1
-	#define	P3T_SDA_GPIO		1
-	#define	P3T_SCL_GPIO		1
+enum { 	
+	DISABLED_PIN, 
+	P0_0,
+	P0_1,
+	P0_2,
+	P0_3,
+	P0_4,
+	P0_5,
+	P0_6,
+	P0_7,
+	P0_8,
+	P0_9,
+	P0_10,
+	P0_11,
+	P0_12,
+	P0_13,
+	P0_14,
+	P0_15,
+	P0_16,
+	P0_17,
+	P0_18,
+	P0_19,
+	P0_20,
+	P0_21,
+	P0_22,
+	P0_23,
+	P0_24,
+	P0_25,
+	P0_26,
+	P0_27,
+	P0_28,
+	P0_29,
+	P0_30,
+	P0_31,
+	P1_0,
+	P1_1,
+	P1_2,
+	P1_3,
+	P1_4,
+	P1_5,
+	P1_6,
+	P1_7,
+	P1_8,
+	P1_9,
+	P1_10,
+	P1_11,
+	P1_12,
+	P1_13,
+	P1_14,
+	P1_15,
+	P1_16,
+	P1_17,
+	P1_18,
+	P1_19,
+	P1_20,
+	P1_21,
+	P1_22,
+	P1_23,
+	P1_30,
+	P1_31,
+	P2_0,
+	P2_1,
+	P2_2,
+	P2_3,
+	P2_4,
+	P2_5,
+	P2_6,
+	P2_7,
+	P2_8,
+	P2_9,
+	P2_10,
+	P2_11,
+	P3_0,
+	P3_1,
+	P3_2,
+	P3_3,
+	P3_4,
+	P3_5,
+	P3_6,
+	P3_7,
+	P3_8,
+	P3_9,
+	P3_10,
+	P3_11,
+	P3_12,
+	P3_13,
+	P3_14,
+	P3_15,
+	P3_16,
+	P3_17,
+	P3_18,
+	P3_19,
+	P3_20,
+	P3_21,
+	P3_22,
+	P3_23,
+	P4_0,
+	P4_1,
+	P4_2,
+	P4_3,
+	P4_4,
+	P4_5,
+	P4_6,
+	P4_7,
+	P4_12,
+	P4_13,
+	P4_14,
+	P4_15,
+	P4_16,
+	P4_17,
+	P4_18,
+	P4_19,
+	P4_20,
+	P4_21,
+	P4_22,
+	P4_23,
+	P5_0,
+	P5_1,
+	P5_2,
+	P5_3,
+	P5_4,
+	P5_5,
+	P5_6,
+	P5_7,
+	P5_8,
+	P5_9,
+};
 
-	#define A0_GPIO_PIN			DISABLED_PIN
-	#define A1_GPIO_PIN			DISABLED_PIN
-	#define A2_GPIO_PIN			14U
-	#define A3_GPIO_PIN			22U
-	#define A4_GPIO_PIN			15U
-	#define A5_GPIO_PIN			23U
-	#define D0_GPIO_PIN			3U
-	#define D1_GPIO_PIN			2U
-	#define D2_GPIO_PIN			29U
-	#define D3_GPIO_PIN			23U
-	#define D4_GPIO_PIN			30U
-	#define D5_GPIO_PIN			21U
-	#define D6_GPIO_PIN			2U
-	#define D7_GPIO_PIN			31U
-	#define D8_GPIO_PIN			28U
-	#define D9_GPIO_PIN			10U
-	#define D10_GPIO_PIN		27U
-	#define D11_GPIO_PIN		24U
-	#define D12_GPIO_PIN		26U
-	#define D13_GPIO_PIN		25U
-	#define D18_GPIO_PIN		0U
-	#define D19_GPIO_PIN		1U
-	#define SW2_GPIO_PIN		A5_GPIO_PIN
-	#define SW3_GPIO_PIN		6
-	#define	MB_AN_GPIO_PIN		DISABLED_PIN
-	#define	MB_RST_GPIO_PIN		3
-	#define	MB_CS_GPIO_PIN		23
-	#define	MB_SCK_GPIO_PIN		21
-	#define	MB_MISO_GPIO_PIN	22
-	#define	MB_MOSI_GPIO_PIN	20
-	#define	MB_PWM_GPIO_PIN		19
-	#define	MB_INT_GPIO_PIN		7
-	#define	MB_RX_GPIO_PIN		16
-	#define	MB_TX_GPIO_PIN		17
-	#define	MB_SCL_GPIO_PIN		1
-	#define	MB_SDA_GPIO_PIN		0
-	#define	P3T_SDA_GPIO_PIN	16
-	#define	P3T_SCL_GPIO_PIN	17
+	#define	D0		P4_3
+	#define	D1		P4_2
+	#define	D2		P0_29
+	#define	D3		P1_23
+	#define	D4		P0_30
+	#define	D5		P1_21
+	#define	D6		P1_2
+	#define	D7		P0_31
+	#define	D8		P0_28
+	#define	D9		P0_10
+	#define	D10		P0_27
+	#define	D11		P0_24
+	#define	D12		P0_26
+	#define	D13		P0_25
+	#define	D18		P4_0
+	#define	D19		P4_1
+	#define	A0		DISABLED_PIN
+	#define	A1		DISABLED_PIN
+	#define	A2		P0_14
+	#define	A3		P0_22
+	#define	A4		P0_15
+	#define	A5		P0_23
+	#define	SW2		P0_23
+	#define	SW3		P0_6
+	#define	MB_AN	DISABLED_PIN
+	#define	MB_RST	P1_3
+	#define	MB_CS	P3_23
+	#define	MB_SCK	P3_21
+	#define	MB_MISO	P3_22
+	#define	MB_MOSI	P3_20
+	#define	MB_PWM	P3_19
+	#define	MB_INT	P5_7
+	#define	MB_RX	P1_16
+	#define	MB_TX	P1_17
+	#define	MB_SCL	P1_1
+	#define	MB_SDA	P1_0
+	#define	I3C_SDA	MB_RX
+	#define	I3C_SCL	MB_TX
+	#define	RED		D9
+	#define	GREEN	D10
+	#define	BLUE	D6
 
-	#define	RED					D9
-	#define	GREEN				D10
-	#define	BLUE				D6
 
-#else // CPU_MCXN947VDF
+#elif	CPU_MCXN236VDF
 
-	#define D0_GPIO				1
-	#define D1_GPIO				1
-	#define D2_GPIO				2
-	#define D3_GPIO				3
-	#define D4_GPIO				2
-	#define D5_GPIO				3
-	#define D6_GPIO				3
-	#define D7_GPIO				3
-	#define D8_GPIO				3
-	#define D9_GPIO				3
-	#define D10_GPIO			2
-	#define D11_GPIO			2
-	#define D12_GPIO			2
-	#define D13_GPIO			2
-	#define D18_GPIO			1
-	#define D19_GPIO			1
-	#define SW2_GPIO			3
-	#define SW3_GPIO			1
-	#define A0_GPIO				1
-	#define A1_GPIO				1
-	#define A2_GPIO				1
-	#define A3_GPIO				2
-	#define A4_GPIO				3
-	#define A5_GPIO				3
-	#define	MB_AN_GPIO			3
-	#define	MB_RST_GPIO			3
-	#define	MB_CS_GPIO			1
-	#define	MB_SCK_GPIO			1
-	#define	MB_MISO_GPIO		1
-	#define	MB_MOSI_GPIO		1
-	#define	MB_PWM_GPIO			3
-	#define	MB_INT_GPIO			2
-	#define	MB_RX_GPIO			3
-	#define	MB_TX_GPIO			3
-	#define	MB_SCL_GPIO			3
-	#define	MB_SDA_GPIO			3
+enum { 	
+	DISABLED_PIN, 
+	P0_0,
+	P0_1,
+	P0_2,
+	P0_3,
+	P0_4,
+	P0_5,
+	P0_6,
+	P0_7,
+	P0_14,
+	P0_15,
+	P0_16,
+	P0_17,
+	P0_18,
+	P0_19,
+	P0_20,
+	P0_21,
+	P0_22,
+	P0_23,
+	P0_24,
+	P0_25,
+	P0_26,
+	P0_27,
+	P0_28,
+	P0_29,
+	P1_0,
+	P1_1,
+	P1_2,
+	P1_3,
+	P1_4,
+	P1_5,
+	P1_6,
+	P1_7,
+	P1_8,
+	P1_9,
+	P1_10,
+	P1_11,
+	P1_12,
+	P1_13,
+	P1_14,
+	P1_15,
+	P1_16,
+	P1_17,
+	P1_18,
+	P1_19,
+	P1_30,
+	P1_31,
+	P2_0,
+	P2_1,
+	P2_2,
+	P2_3,
+	P2_4,
+	P2_5,
+	P2_6,
+	P2_7,
+	P2_8,
+	P2_9,
+	P2_10,
+	P2_11,
+	P3_0,
+	P3_1,
+	P3_2,
+	P3_6,
+	P3_7,
+	P3_8,
+	P3_9,
+	P3_10,
+	P3_11,
+	P3_12,
+	P3_13,
+	P3_14,
+	P3_15,
+	P3_16,
+	P3_17,
+	P3_18,
+	P3_20,
+	P3_21,
+	P3_22,
+	P3_23,
+	P4_0,
+	P4_1,
+	P4_2,
+	P4_3,
+	P4_4,
+	P4_5,
+	P4_6,
+	P4_7,
+	P4_12,
+	P4_13,
+	P4_14,
+	P4_15,
+	P4_16,
+	P4_17,
+	P4_18,
+	P4_19,
+	P4_20,
+	P4_21,
+	P4_22,
+	P4_23,
+	P5_0,
+	P5_1,
+	P5_2,
+	P5_3,
+	P5_4,
+	P5_5,
+	P5_6,
+	P5_7,
+};
 
-	#define	P3T_SDA_GPIO		1
-	#define	P3T_SCL_GPIO		1
+	#define	D0		P4_3
+	#define	D1		P4_2
+	#define	D2		P2_0
+	#define	D3		P3_12
+	#define	D4		P0_21
+	#define	D5		P2_7
+	#define	D6		P3_17
+	#define	D7		P0_22
+	#define	D8		P0_23
+	#define	D9		P3_14
+	#define	D10		P1_3
+	#define	D11		P1_0
+	#define	D12		P1_2
+	#define	D13		P1_1
+	#define	D18		P1_16
+	#define	D19		P1_17
+	#define	A0		P4_6
+	#define	A1		P4_15
+	#define	A2		P4_16
+	#define	A3		P4_17
+	#define	A4		P4_12
+	#define	A5		P4_13
+	#define	SW2		P0_20
+	#define	SW3		P0_6
+	#define	MB_AN	P5_3
+	#define	MB_RST	P5_2
+	#define	MB_CS	P1_16
+	#define	MB_SCK	P1_1
+	#define	MB_MISO	P1_2
+	#define	MB_MOSI	P1_0
+	#define	MB_PWM	P4_18
+	#define	MB_INT	P5_6
+	#define	MB_RX	P4_3
+	#define	MB_TX	P4_2
+	#define	MB_SCL	P4_1
+	#define	MB_SDA	P4_0
+	#define	I3C_SDA	D18
+	#define	I3C_SCL	D19
+	#define	RED		MB_PWM
+	#define	GREEN	P4_19
+	#define	BLUE	A3
 
-	#define D0_GPIO_PIN			4U
-	#define D1_GPIO_PIN			5U
-	#define D2_GPIO_PIN			4U
-	#define D3_GPIO_PIN			0U
-	#define D4_GPIO_PIN			5U
-	#define D5_GPIO_PIN			12U
-	#define D6_GPIO_PIN			13U
-	#define D7_GPIO_PIN			1U
-	#define D8_GPIO_PIN			15U
-	#define D9_GPIO_PIN			14U
-	#define D10_GPIO_PIN		6U
-	#define D11_GPIO_PIN		13U
-	#define D12_GPIO_PIN		16U
-	#define D13_GPIO_PIN		12U
-	#define D18_GPIO_PIN		8U
-	#define D19_GPIO_PIN		9U
-	#define SW2_GPIO_PIN		29U
-	#define SW3_GPIO_PIN		7U
-	#define A0_GPIO_PIN			10U
-	#define A1_GPIO_PIN			12U
-	#define A2_GPIO_PIN			13U
-	#define A3_GPIO_PIN			0U
-	#define A4_GPIO_PIN			31U
-	#define A5_GPIO_PIN			30U
+#elif	CPU_MCXA153VLH
 
-	#define	MB_AN_GPIO_PIN		30
-	#define	MB_RST_GPIO_PIN		1
-	#define	MB_CS_GPIO_PIN		3
-	#define	MB_SCK_GPIO_PIN		1
-	#define	MB_MISO_GPIO_PIN	2
-	#define	MB_MOSI_GPIO_PIN	0
-	#define	MB_PWM_GPIO_PIN		12
-	#define	MB_INT_GPIO_PIN		5
-	#define	MB_RX_GPIO_PIN		14
-	#define	MB_TX_GPIO_PIN		15
-	#define	MB_SCL_GPIO_PIN		27
-	#define	MB_SDA_GPIO_PIN		28
 
-	#define	P3T_SDA_GPIO_PIN	16
-	#define	P3T_SCL_GPIO_PIN	17
+enum { 	
+	DISABLED_PIN, 
+	P0_0,
+	P0_1,
+	P0_2,
+	P0_3,
+	P0_6,
+	P0_16,
+	P0_17,
+	P1_0,
+	P1_1,
+	P1_2,
+	P1_3,
+	P1_4,
+	P1_5,
+	P1_6,
+	P1_7,
+	P1_8,
+	P1_9,
+	P1_10,
+	P1_11,
+	P1_12,
+	P1_13,
+	P1_29,
+	P1_30,
+	P1_31,
+	P2_0,
+	P2_1,
+	P2_2,
+	P2_3,
+	P2_4,
+	P2_5,
+	P2_6,
+	P2_7,
+	P2_12,
+	P2_13,
+	P2_16,
+	P3_0,
+	P3_1,
+	P3_6,
+	P3_7,
+	P3_8,
+	P3_9,
+	P3_10,
+	P3_11,
+	P3_12,
+	P3_13,
+	P3_14,
+	P3_15,
+	P3_27,
+	P3_28,
+	P3_29,
+	P3_30,
+	P3_31,
+};
 
-	#define	RED					D5
-	#define	GREEN				D6
-	#define	BLUE				D3
+#define	D0		P1_4
+#define	D1		P1_5
+#define	D2		P2_4
+#define	D3		P3_0
+#define	D4		P2_5
+#define	D5		P3_12
+#define	D6		P3_13
+#define	D7		P3_1
+#define	D8		P3_15
+#define	D9		P3_14
+#define	D10		P2_6
+#define	D11		P2_13
+#define	D12		P2_16
+#define	D13		P2_12
+#define	D18		P1_8
+#define	D19		P1_9
+#define	A0		P1_10
+#define	A1		P1_12
+#define	A2		P1_13
+#define	A3		P2_0
+#define	A4		P3_31
+#define	A5		P3_30
+#define	SW2		P3_29
+#define	SW3		P1_7
+#define	MB_AN	P3_30
+#define	MB_RST	P3_1
+#define	MB_CS	P1_3
+#define	MB_SCK	P1_1
+#define	MB_MISO	P1_2
+#define	MB_MOSI	P1_0
+#define	MB_PWM	P3_12
+#define	MB_INT	P2_5
+#define	MB_RX	P3_14
+#define	MB_TX	P3_15
+#define	MB_SCL	P3_27
+#define	MB_SDA	P3_28
+#define	I3C_SDA	P0_16
+#define	I3C_SCL	P0_17
+#define	RED		D5
+#define	GREEN	D6
+#define	BLUE	D3
 
+#else
+	#error Target CPU is not supported
 #endif // CPU_MCXN947VDF
 
-#define	I2C_SDA				D18
-#define	I2C_SCL				D19
 
-#define	SPI_CS				D10
-#define	SPI_MOSI			D11
-#define	SPI_MISO			D12
-#define	SPI_SCLK			D13
 
-/** pin names  */
-enum { 	D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12, D13, D18, D19,
-		A0, A1, A2, A3, A4, A5, 
-		SW2, SW3,
-		MB_AN, MB_RST, MB_CS, MB_SCK, MB_MISO, MB_MOSI, MB_PWM, MB_INT, MB_RX, MB_TX, MB_SCL, MB_SDA, 
-		I3C_SDA, I3C_SCL
-};
+#define	I2C_SDA		D18
+#define	I2C_SCL		D19
+#define	SPI_CS		D10
+#define	SPI_MOSI	D11
+#define	SPI_MISO	D12
+#define	SPI_SCLK	D13
 
 #define	PIN_LED_OFF	true
 #define	PIN_LED_ON	false
@@ -235,32 +485,32 @@ public:
 
 	/** Destractor
 	 */
-	virtual ~DigitalInOut();
+	~DigitalInOut();
 	
 	/** Pin output seting
 	 *
 	 * @param value setting output
 	 */
-	virtual void	value( bool value );
+	void	value( bool value );
 
 	/** Pin input state read
 	 *
 	 * @return pin state
 	 */
-	virtual bool	value( void );
+	bool	value( void );
 	
 	/** Pin direction to set as output
 	 */
-	virtual void	output( void );
+	void	output( void );
 
 	/** Pin direction to set as in
 	 */
-	virtual void	input( void );
+	void	input( void );
 
 	/** Pin mux setting
 	 * This interface is provided to other class drivers to change pin config dynamically
 	 */
-	virtual void	pin_mux( int mux );
+	void	pin_mux( int mux );
 		
 	/** A short hand for setting pins
 	 */
@@ -297,7 +547,7 @@ public:
 	using DigitalInOut::operator=;
 
 	DigitalOut( uint8_t pin_num, bool value = 0 );
-	virtual ~DigitalOut();
+	~DigitalOut();
 };
 
 /** DigitalIn class
@@ -313,7 +563,7 @@ public:
 	using DigitalInOut::operator=;
 
 	DigitalIn( uint8_t pin_num );
-	virtual ~DigitalIn();
+	~DigitalIn();
 };
 
 #endif // R01LIB_IO_H
