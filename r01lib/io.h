@@ -20,10 +20,7 @@
 #ifdef	CPU_MCXN947VDF
 enum { 	
 	DISABLED_PIN, 
-	P0_0,
-	P0_1,
-	P0_2,
-	P0_3,
+	P0_0, P0_1, P0_2, P0_3,
 	P0_4,
 	P0_5,
 	P0_6,
@@ -182,11 +179,22 @@ enum {
 	#define	MB_TX	P1_17
 	#define	MB_SCL	P1_1
 	#define	MB_SDA	P1_0
-	#define	I3C_SDA	MB_RX
-	#define	I3C_SCL	MB_TX
 	#define	RED		D9
 	#define	GREEN	D10
 	#define	BLUE	D6
+
+	#define	I3C_SDA		MB_RX
+	#define	I3C_SCL		MB_TX
+	#define	I2C_SDA		D18
+	#define	I2C_SCL		D19
+	#define	SPI_CS		D10
+	#define	SPI_MOSI	D11
+	#define	SPI_MISO	D12
+	#define	SPI_SCLK	D13
+
+	#define	PIN_LED_OFF	true
+	#define	PIN_LED_ON	false
+
 
 
 #elif	CPU_MCXN236VDF
@@ -327,7 +335,7 @@ enum {
 	#define	SW3		P0_6
 	#define	MB_AN	P5_3
 	#define	MB_RST	P5_2
-	#define	MB_CS	P1_16
+	#define	MB_CS	D18
 	#define	MB_SCK	P1_1
 	#define	MB_MISO	P1_2
 	#define	MB_MOSI	P1_0
@@ -337,11 +345,23 @@ enum {
 	#define	MB_TX	P4_2
 	#define	MB_SCL	P4_1
 	#define	MB_SDA	P4_0
-	#define	I3C_SDA	D18
-	#define	I3C_SCL	D19
 	#define	RED		MB_PWM
 	#define	GREEN	P4_19
 	#define	BLUE	A3
+
+	#define	I3C_SDA		D18
+	#define	I3C_SCL		D19
+	#define	I2C_SDA		A4
+	#define	I2C_SCL		A5
+	#define	SPI_CS		D10
+	#define	SPI_MOSI	D11
+	#define	SPI_MISO	D12
+	#define	SPI_SCLK	D13
+
+	#define	PIN_LED_OFF	true
+	#define	PIN_LED_ON	false
+
+
 
 #elif	CPU_MCXA153VLH
 
@@ -402,64 +422,86 @@ enum {
 	P3_31,
 };
 
-#define	D0		P1_4
-#define	D1		P1_5
-#define	D2		P2_4
-#define	D3		P3_0
-#define	D4		P2_5
-#define	D5		P3_12
-#define	D6		P3_13
-#define	D7		P3_1
-#define	D8		P3_15
-#define	D9		P3_14
-#define	D10		P2_6
-#define	D11		P2_13
-#define	D12		P2_16
-#define	D13		P2_12
-#define	D18		P1_8
-#define	D19		P1_9
-#define	A0		P1_10
-#define	A1		P1_12
-#define	A2		P1_13
-#define	A3		P2_0
-#define	A4		P3_31
-#define	A5		P3_30
-#define	SW2		P3_29
-#define	SW3		P1_7
-#define	MB_AN	P3_30
-#define	MB_RST	P3_1
-#define	MB_CS	P1_3
-#define	MB_SCK	P1_1
-#define	MB_MISO	P1_2
-#define	MB_MOSI	P1_0
-#define	MB_PWM	P3_12
-#define	MB_INT	P2_5
-#define	MB_RX	P3_14
-#define	MB_TX	P3_15
-#define	MB_SCL	P3_27
-#define	MB_SDA	P3_28
-#define	I3C_SDA	P0_16
-#define	I3C_SCL	P0_17
-#define	RED		D5
-#define	GREEN	D6
-#define	BLUE	D3
+	#define	D0		P1_4
+	#define	D1		P1_5
+	#define	D2		P2_4
+	#define	D3		P3_0
+	#define	D4		P2_5
+	#define	D5		P3_12
+	#define	D6		P3_13
+	#define	D7		P3_1
+	#define	D8		P3_15
+	#define	D9		P3_14
+	#define	D10		P2_6
+	#define	D11		P2_13
+	#define	D12		P2_16
+	#define	D13		P2_12
+	#define	D18		P1_8
+	#define	D19		P1_9
+	#define	A0		P1_10
+	#define	A1		P1_12
+	#define	A2		P1_13
+	#define	A3		P2_0
+	#define	A4		P3_31
+	#define	A5		P3_30
+	#define	SW2		P3_29
+	#define	SW3		P1_7
+	#define	MB_AN	P3_30
+	#define	MB_RST	P3_1
+	#define	MB_CS	P1_3
+	#define	MB_SCK	P1_1
+	#define	MB_MISO	P1_2
+	#define	MB_MOSI	P1_0
+	#define	MB_PWM	P3_12
+	#define	MB_INT	P2_5
+	#define	MB_RX	P3_14
+	#define	MB_TX	P3_15
+	#define	MB_SCL	P3_27
+	#define	MB_SDA	P3_28
+	#define	RED		D5
+	#define	GREEN	D6
+	#define	BLUE	D3
+
+	#define	I3C_SDA		P0_16
+	#define	I3C_SCL		P0_17
+	#define	I2C_SDA		D18
+	#define	I2C_SCL		D19
+	#define	SPI_CS		D10
+	#define	SPI_MOSI	D11
+	#define	SPI_MISO	D12
+	#define	SPI_SCLK	D13
+
+	#define	PIN_LED_OFF	true
+	#define	PIN_LED_ON	false
+
 
 #else
 	#error Target CPU is not supported
 #endif // CPU_MCXN947VDF
 
 
-
-#define	I2C_SDA		D18
-#define	I2C_SCL		D19
-#define	SPI_CS		D10
-#define	SPI_MOSI	D11
-#define	SPI_MISO	D12
-#define	SPI_SCLK	D13
-
-#define	PIN_LED_OFF	true
-#define	PIN_LED_ON	false
-
+#define	ARD_D0	D0
+#define	ARD_D1	D1
+#define	ARD_D2	D2
+#define	ARD_D3	D3
+#define	ARD_D4	D4
+#define	ARD_D5	D5
+#define	ARD_D6	D6
+#define	ARD_D7	D7
+#define	ARD_D8	D8
+#define	ARD_D9	D9
+#define	ARD_D10	D10
+#define	ARD_D11	D11
+#define	ARD_D12	D12
+#define	ARD_D13	D13
+#define	ARD_D18	D18
+#define	ARD_D19	D19
+#define	ARD_A0	A0
+#define	ARD_A1	A1
+#define	ARD_A2	A2
+#define	ARD_A3	A3
+#define	ARD_A4	A4
+#define	ARD_A5	A5
 
 /** DigitalInOut class
  *	

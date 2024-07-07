@@ -20,13 +20,19 @@ extern "C" {
 #include	"mcu.h"
 
 #ifdef	CPU_MCXN947VDF
-#define EXAMPLE_I2C_MASTER_BASE			(LPI2C2_BASE)
-#define LPI2C_MASTER_CLOCK_FREQUENCY 	CLOCK_GetLPFlexCommClkFreq(2u)
-#define EXAMPLE_I2C_MASTER				((LPI2C_Type *)EXAMPLE_I2C_MASTER_BASE)
+	#define EXAMPLE_I2C_MASTER_BASE			(LPI2C2_BASE)
+	#define LPI2C_MASTER_CLOCK_FREQUENCY 	CLOCK_GetLPFlexCommClkFreq(2u)
+	#define EXAMPLE_I2C_MASTER				((LPI2C_Type *)EXAMPLE_I2C_MASTER_BASE)
+#elif	CPU_MCXN236VDF
+	#define EXAMPLE_I2C_MASTER_BASE			(LPI2C2_BASE)
+	#define LPI2C_MASTER_CLOCK_FREQUENCY	CLOCK_GetLPFlexCommClkFreq(2u)
+	#define EXAMPLE_I2C_MASTER				((LPI2C_Type *)EXAMPLE_I2C_MASTER_BASE)
+#elif	CPU_MCXA153VLH
+	#define EXAMPLE_I2C_MASTER_BASE			LPI2C0
+	#define LPI2C_MASTER_CLOCK_FREQUENCY	CLOCK_GetLpi2cClkFreq()
+	#define EXAMPLE_I2C_MASTER				((LPI2C_Type *)EXAMPLE_I2C_MASTER_BASE)
 #else
-#define EXAMPLE_I2C_MASTER_BASE			LPI2C0
-#define LPI2C_MASTER_CLOCK_FREQUENCY	CLOCK_GetLpi2cClkFreq()
-#define EXAMPLE_I2C_MASTER				((LPI2C_Type *)EXAMPLE_I2C_MASTER_BASE)
+	#error Not supported CPU
 #endif
 
 I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true )
@@ -41,7 +47,16 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true )
 		panic( "FRDM-MCXN947 only support I2C_SDA(D18)/I2C_SCL(D19) pins for I2C" );
 	
 	constexpr int	mux_setting	= 2;
-#else
+#elif	CPU_MCXN236VDF
+	if ( (sda == A4) && (scl == A5) )
+		;
+	else if ( (sda == MB_SDA) && (scl == MB_SCL) )
+		;
+	else
+		panic( "FRDM-MCXN947 only support I2C_SDA(D18)/I2C_SCL(D19) pins for I2C" );
+	
+	constexpr int	mux_setting	= 2;
+#elif	CPU_MCXA153VLH
 	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
 		;
 	else if ( (sda == I2C_SDA) && (scl == I2C_SCL) )
@@ -55,6 +70,7 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true )
 
 	constexpr int	mux_setting	= kPORT_MuxAlt3;
 	RESET_ReleasePeripheralReset( kLPI2C0_RST_SHIFT_RSTn );
+#else
 #endif
 
 	LPI2C_MasterGetDefaultConfig( &masterConfig );

@@ -16,11 +16,14 @@ extern "C" {
 #define	IBI_PAYLOAD_BUFFER_SIZE		10
 
 #ifdef	CPU_MCXN947VDF
-#define EXAMPLE_MASTER            	I3C1
-#define I3C_MASTER_CLOCK_FREQUENCY	CLOCK_GetI3cClkFreq(1)
+	#define EXAMPLE_MASTER            	I3C1
+	#define I3C_MASTER_CLOCK_FREQUENCY	CLOCK_GetI3cClkFreq(1)
+#elif	CPU_MCXN236VDF
+	#define EXAMPLE_MASTER            	I3C1
+	#define I3C_MASTER_CLOCK_FREQUENCY	CLOCK_GetI3cClkFreq(1)
 #else
-#define EXAMPLE_MASTER				I3C0
-#define I3C_MASTER_CLOCK_FREQUENCY	CLOCK_GetI3CFClkFreq()
+	#define EXAMPLE_MASTER				I3C0
+	#define I3C_MASTER_CLOCK_FREQUENCY	CLOCK_GetI3CFClkFreq()
 #endif
 
 uint8_t					g_ibiBuff[ IBI_PAYLOAD_BUFFER_SIZE ];
@@ -40,6 +43,11 @@ I3C::I3C( int sda, int scl, uint32_t i2c_freq, uint32_t i3c_od_freq, uint32_t i3
 	: I2C( sda, scl, true )
 {
 #ifdef	CPU_MCXN947VDF
+	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
+		;
+	else
+		panic( "FRDM-MCXN947 only support I3C_SDA/I3C_SCL pins for I3C" );
+#elif	CPU_MCXN236VDF
 	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
 		;
 	else
