@@ -51,7 +51,7 @@ void I2C_device::scan( I2C& target_i2c, uint8_t stop )
 
 int I2C_device::tx( const uint8_t *data, uint16_t size, bool stop )
 {
-	return i2c.write( i2c_addr, data, size );
+	return i2c.write( i2c_addr, data, size, stop );
 }
 
 int I2C_device::rx( uint8_t *data, uint16_t size )
