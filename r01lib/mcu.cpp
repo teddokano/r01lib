@@ -60,6 +60,7 @@ void init_mcu( void )
 
 	CLOCK_EnableClock( kCLOCK_Gpio0 );
 	CLOCK_EnableClock( kCLOCK_Gpio1 );
+	CLOCK_EnableClock( kCLOCK_Gpio2 );
 	CLOCK_EnableClock( kCLOCK_Gpio3 );
 	CLOCK_EnableClock( kCLOCK_Gpio4 );
 
@@ -71,6 +72,47 @@ void init_mcu( void )
 		/* Init FSL debug console. */
 		BOARD_InitDebugConsole();
 	#endif
+
+#elif	CPU_MCXN236VDF
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom4Clk, 1);
+	CLOCK_AttachClk(BOARD_DEBUG_UART_CLK_ATTACH);
+
+	/* Attach PLL0 clock to I3C, 150MHz / 12 = 12.5MHz. */
+	CLOCK_SetClkDiv(kCLOCK_DivI3c1FClk, 12U);
+	CLOCK_AttachClk(kPLL0_to_I3C1FCLK);
+
+	/* I2C */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom2Clk, 1u);
+	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM2);
+
+	/* SPI */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom3Clk, 1u);
+	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM3);
+
+	SYSCON->CLOCK_CTRL |= SYSCON_CLOCK_CTRL_FRO1MHZ_ENA_MASK;	//	UTICK
+
+	CLOCK_EnableClock( kCLOCK_Gpio0 );
+	CLOCK_EnableClock( kCLOCK_Gpio1 );
+	CLOCK_EnableClock( kCLOCK_Gpio2 );
+	CLOCK_EnableClock( kCLOCK_Gpio3 );
+	CLOCK_EnableClock( kCLOCK_Gpio4 );
+
+	/* Init board hardware. */
+#if 1
+	BOARD_InitBootPins();
+	BOARD_InitBootClocks();
+	BOARD_InitBootPeripherals();
+#else
+	BOARD_InitPins();
+	BOARD_BootClockFRO12M();
+	BOARD_InitPeripherals();
+#endif
+	
+#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
+		/* Init FSL debug console. */
+		BOARD_InitDebugConsole();
+	#endif
+
 
 #else
 	/* Attach clock to I3C 24MHZ */
