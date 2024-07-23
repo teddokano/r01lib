@@ -13,8 +13,11 @@
 #include <stdint.h>
 
 #ifdef	CPU_MCXN947VDF
-#undef	PWM0	//	To avoid name conflicts with MCXN947_cm33_core0.h
-#undef	PWM1	//	To avoid name conflicts with MCXN947_cm33_core0.h
+	#undef	PWM0	//	To avoid name conflicts with MCXN947_cm33_core0.h
+	#undef	PWM1	//	To avoid name conflicts with MCXN947_cm33_core0.h
+#elif	CPU_MCXN236VDF
+	#undef	PWM0	//	To avoid name conflicts with MCXN947_cm33_core0.h
+	#undef	PWM1	//	To avoid name conflicts with MCXN947_cm33_core0.h
 #endif
 
 enum access_word : uint8_t
