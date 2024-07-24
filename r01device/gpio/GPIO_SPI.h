@@ -1,4 +1,4 @@
-/** I2C device abstracting class
+/** GPIO SPI device abstracting class
  *
  *	This class provides common methods for all I2C devices
  *
