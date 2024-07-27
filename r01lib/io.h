@@ -554,6 +554,11 @@ public:
 	 */
 	void	pin_mux( int mux );
 		
+	/** Pin pull setting
+	 * @param low_high pull-down = 0, pull-up = 1
+	 */
+	void	pull( int low_high );
+
 	/** A short hand for setting pins
 	 */
 	DigitalInOut&	operator=( bool v );
@@ -607,5 +612,18 @@ public:
 	DigitalIn( uint8_t pin_num );
 	~DigitalIn();
 };
+
+
+static inline void PORT_SetPinPullUpDown( PORT_Type *base, uint32_t pin, int enable, int logic )
+{
+	base->PCR[pin] = (base->PCR[pin] & ~PORT_PCR_PS_MASK) | PORT_PCR_PS( enable );
+	base->PCR[pin] = (base->PCR[pin] & ~PORT_PCR_PE_MASK) | PORT_PCR_PE( logic );
+}
+
+static inline void PORT_SetPinOpenDrain( PORT_Type *base, uint32_t pin, int enable )
+{
+	base->PCR[pin] = (base->PCR[pin] & ~PORT_PCR_ODE_MASK) | PORT_PCR_ODE( enable );
+}
+
 
 #endif // R01LIB_IO_H

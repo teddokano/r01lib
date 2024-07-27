@@ -83,6 +83,9 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true )
 	
 	_scl.pin_mux( mux_setting );
 	_sda.pin_mux( mux_setting );
+
+	_scl.pull( 1 );
+	_sda.pull( 1 );
 }
 
 I2C::~I2C()

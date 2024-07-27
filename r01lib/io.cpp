@@ -394,6 +394,11 @@ void DigitalInOut::pin_mux( int mux )
 	PORT_SetPinMux( port_n, gpio_pin, (port_mux_t)mux );
 }
 
+void DigitalInOut::pull( int low_high )
+{
+	PORT_SetPinPullUpDown( port_n, gpio_pin, 1, low_high );
+}
+
 DigitalInOut& DigitalInOut::operator=( bool v )
 {
 	value( v );
