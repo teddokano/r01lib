@@ -331,7 +331,7 @@ extern "C" {
 }
 
 
-DigitalInOut::DigitalInOut( uint8_t pin_num, bool direction, bool v )
+DigitalInOut::DigitalInOut( uint8_t pin_num, bool direction, bool v, int pin_mode )
 	: Obj( true ), _pn( pin_num ), _dir( direction ), _value( v )
 {
 	if ( -1 == pins[ _pn ].base )
@@ -344,6 +344,8 @@ DigitalInOut::DigitalInOut( uint8_t pin_num, bool direction, bool v )
 	gpio_pin	= pins[ _pn ].pin;
 	
 	GPIO_PinInit( gpio_n, gpio_pin, &led_config );
+	mode( pin_mode );
+	
 	value( (bool)_value );
 }
 
@@ -394,9 +396,15 @@ void DigitalInOut::pin_mux( int mux )
 	PORT_SetPinMux( port_n, gpio_pin, (port_mux_t)mux );
 }
 
-void DigitalInOut::pull( int low_high )
+void DigitalInOut::mode( int pin_mode )
 {
-	PORT_SetPinPullUpDown( port_n, gpio_pin, 1, low_high );
+	PORT_SetPinPullUpDown( port_n, gpio_pin, (pin_mode & (PullUp | PullDown)) ? 1 : 0, (pin_mode & PullUp) ? 1 : 0);
+	PORT_SetPinOpenDrain( port_n, gpio_pin, (pin_mode & OpenDrain) ? 1 : 0 );
+}
+
+uint32_t DigitalInOut::mode( void )
+{
+	return PORT_GetPinMode( port_n, gpio_pin );
 }
 
 DigitalInOut& DigitalInOut::operator=( bool v )
@@ -415,15 +423,15 @@ DigitalInOut::operator bool()
 	return value();
 }
 
-DigitalOut::DigitalOut( uint8_t pin_num, bool value )
-	: DigitalInOut( pin_num, kGPIO_DigitalOutput, value )
+DigitalOut::DigitalOut( uint8_t pin_num, bool value, int pin_mode )
+	: DigitalInOut( pin_num, kGPIO_DigitalOutput, value, pin_mode )
 {
 }
 
 DigitalOut::~DigitalOut() {}
 
-DigitalIn::DigitalIn( uint8_t pin_num )
-	: DigitalInOut( pin_num, kGPIO_DigitalInput, 0 )
+DigitalIn::DigitalIn( uint8_t pin_num, int pin_mode )
+	: DigitalInOut( pin_num, kGPIO_DigitalInput, 0, pin_mode )
 {
 }
 

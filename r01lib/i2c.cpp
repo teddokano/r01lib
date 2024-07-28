@@ -16,7 +16,6 @@ extern "C" {
 }
 
 #include	"i2c.h"
-#include	"io.h"
 #include	"mcu.h"
 
 #ifdef	CPU_MCXN947VDF
@@ -35,7 +34,7 @@ extern "C" {
 	#error Not supported CPU
 #endif
 
-I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true )
+I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 {
 	if ( no_hw )
 		return;
@@ -78,14 +77,8 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true )
 	
 //	frequency( I2C_FREQ );
 	
-	DigitalInOut	_scl( scl );
-	DigitalInOut	_sda( sda );
-	
 	_scl.pin_mux( mux_setting );
 	_sda.pin_mux( mux_setting );
-
-	_scl.pull( 1 );
-	_sda.pull( 1 );
 }
 
 I2C::~I2C()
@@ -96,6 +89,16 @@ I2C::~I2C()
 void I2C::frequency( uint32_t frequency )
 {
 	LPI2C_MasterSetBaudRate( EXAMPLE_I2C_MASTER, LPI2C_MASTER_CLOCK_FREQUENCY, frequency );
+}
+
+void I2C::pullup( bool enable )
+{
+	int	flag	= enable ? DigitalInOut::PullUp : DigitalInOut::PullNone;
+	
+//	printf( "@@@@@@@@@@ %d\r\n", flag );
+	
+	_scl.mode( flag );
+	_sda.mode( flag );
 }
 
 status_t I2C::write( uint8_t address, const uint8_t *dp, int length, bool stop )

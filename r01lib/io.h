@@ -517,17 +517,26 @@ public:
 		INPUT	= kGPIO_DigitalInput, 
 		OUTPUT	= kGPIO_DigitalOutput
 	};
+	
+	enum	PinMode {
+		PullNone	= 0x0,
+		PullUp		= 0x1,
+		PullDown	= 0x2,
+		OpenDrain	= 0x8
+	};
+
 	/** Create a DigitalInOut instance with specified pins
 	 *
 	 * @param pin_num pin number
 	 * @param direction (option) direction setting
 	 * @param value (option) default value for output
+	 * @param pin_mode (option) PullUp, PullDown, PullNone, OpenDrain
 	 */
-	DigitalInOut( uint8_t pin_num, bool direction = kGPIO_DigitalInput, bool value = 0 );
+	DigitalInOut( uint8_t pin_num, bool direction = kGPIO_DigitalInput, bool value = 0, int pin_mode = PullNone );
 
 	/** Destractor
 	 */
-	~DigitalInOut();
+	virtual ~DigitalInOut();
 	
 	/** Pin output seting
 	 *
@@ -554,10 +563,12 @@ public:
 	 */
 	void	pin_mux( int mux );
 		
-	/** Pin pull setting
-	 * @param low_high pull-down = 0, pull-up = 1
+	/** Pin mode setting
+	 * @param pin_mode PullUp, PullDown, PullNone, OpenDrain
 	 */
-	void	pull( int low_high );
+	void	mode( int pin_mode );
+
+	uint32_t mode( void );
 
 	/** A short hand for setting pins
 	 */
@@ -593,8 +604,14 @@ class DigitalOut : public DigitalInOut
 public:
 	using DigitalInOut::operator=;
 
-	DigitalOut( uint8_t pin_num, bool value = 0 );
-	~DigitalOut();
+	/** Create a DigitalOut instance with specified pins
+	 *
+	 * @param pin_num pin number
+	 * @param value (option) default value for output
+	 * @param pin_mode (option) PullUp, PullDown, PullNone, OpenDrain
+	 */
+	DigitalOut( uint8_t pin_num, bool value = 0, int pin_mode = PullNone );
+	virtual ~DigitalOut();
 };
 
 /** DigitalIn class
@@ -609,8 +626,13 @@ class DigitalIn : public DigitalInOut
 public:
 	using DigitalInOut::operator=;
 
-	DigitalIn( uint8_t pin_num );
-	~DigitalIn();
+	/** Create a DigitalIn instance with specified pins
+	 *
+	 * @param pin_num pin number
+	 * @param pin_mode (option) PullUp, PullDown, PullNone, OpenDrain
+	 */
+	DigitalIn( uint8_t pin_num, int pin_mode = PullNone );
+	virtual ~DigitalIn();
 };
 
 
@@ -624,6 +646,12 @@ static inline void PORT_SetPinOpenDrain( PORT_Type *base, uint32_t pin, int enab
 {
 	base->PCR[pin] = (base->PCR[pin] & ~PORT_PCR_ODE_MASK) | PORT_PCR_ODE( enable );
 }
+
+static inline uint32_t PORT_GetPinMode( PORT_Type *base, uint32_t pin )
+{
+	return base->PCR[pin];
+}
+
 
 
 #endif // R01LIB_IO_H

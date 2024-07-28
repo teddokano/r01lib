@@ -10,6 +10,7 @@
 #include	<string.h>
 #include	"fsl_lpi2c.h"
 #include	"obj.h"
+#include	"io.h"
 
 /** I2C class
  *	
@@ -53,6 +54,12 @@ public:
 	 * @param frequency integer value in "Hz"
 	 */
 	virtual void		frequency( uint32_t frequency );
+
+	/** Pull-up enable
+	 *
+	 * @param enable bool for enabling internal pull-up resister
+	 */
+	virtual void		pullup( bool enable );
 
 	/** Register write (multiple byte data)
 	 *	provideds interface for register write
@@ -163,6 +170,8 @@ public:
 	
 private:
 	lpi2c_master_config_t	masterConfig;
+	DigitalInOut			_sda;
+	DigitalInOut			_scl;
 };
 
 #endif // R01LIB_I2C_H
