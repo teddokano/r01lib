@@ -100,7 +100,7 @@ private:
 class PCA995x : public LEDDriver
 {
 public:
-	PCA995x( uint8_t n_ch, uint8_t PWM_r, uint8_t IREF_r, uint8_t IREFALL_r, const uint8_t* ar, uint8_t oe = 8 );
+	PCA995x( uint8_t n_ch, uint8_t PWM_r, uint8_t IREF_r, uint8_t IREFALL_r, const uint8_t* ar, uint8_t oe = D8 );
 	virtual ~PCA995x();
 	
 	virtual void begin( float current =  0.1, board env = NONE, bool buffered = false );
@@ -124,7 +124,7 @@ public:
 class PCA995x_I2C : public PCA995x, public I2C_device
 {
 public:
-	PCA995x_I2C( I2C& interface, uint8_t i2c_address, uint8_t n_ch, uint8_t PWM_r, uint8_t IREF_r, uint8_t IREFALL_r, const uint8_t* ar, uint8_t oe = 8);
+	PCA995x_I2C( I2C& interface, uint8_t i2c_address, uint8_t n_ch, uint8_t PWM_r, uint8_t IREF_r, uint8_t IREFALL_r, const uint8_t* ar, uint8_t oe = D8 );
 	virtual ~PCA995x_I2C();
 
 	void reg_access( uint8_t reg, uint8_t val  );
@@ -138,7 +138,7 @@ public:
 class PCA995x_SPI : public PCA995x
 {
 public:
-	PCA995x_SPI( SPI& interface, uint8_t n_ch, uint8_t PWM_r, uint8_t IREF_r, uint8_t IREFALL_r, const uint8_t* ar, uint8_t oe = 9 );
+	PCA995x_SPI( SPI& interface, uint8_t n_ch, uint8_t PWM_r, uint8_t IREF_r, uint8_t IREFALL_r, const uint8_t* ar, uint8_t oe = D9 );
 	virtual ~PCA995x_SPI();
 
 	void txrx( uint8_t *data, int size );
