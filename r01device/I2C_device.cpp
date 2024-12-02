@@ -1,3 +1,10 @@
+/** I2C device abstracting class
+ *
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 #include "I2C_device.h"
 
 Serial_device::Serial_device() {}

@@ -1,3 +1,10 @@
+/** LEDDriver operation library for Arduino
+ *
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 #include "led/LED.h"
 
 LED::LED( LEDDriver& leddp, int ch ) : 	devp( leddp ), channel( ch ) {}

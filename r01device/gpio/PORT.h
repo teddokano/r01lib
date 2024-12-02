@@ -1,3 +1,10 @@
+/** GPIO operation library for Arduino
+ *
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 /** PORT: a interfacing class for GPIO operation library, Arduino
  *
  *  @author Tedd OKANO

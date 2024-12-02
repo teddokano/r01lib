@@ -1,3 +1,10 @@
+/** GPIO operation library for Arduino
+ *
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 #include "GPIO_SPI.h"
 
 GPIO_SPI::GPIO_SPI( SPI& interface, uint8_t dev_address ) : spi( interface ), dev_addr( dev_address )

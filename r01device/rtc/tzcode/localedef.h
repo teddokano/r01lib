@@ -1,3 +1,10 @@
+/** Time zone handling lib as a part of r01lib/r01device
+ * 	based on https://github.com/gitpan/Time-OlsonTZ-Data
+ *  
+ *	r01lib/r01device by Tedd OKANO
+ *  Released under the MIT license License
+ */
+
 /*	$OpenBSD: localedef.h,v 1.1 2016/05/23 00:05:15 guenther Exp $	*/
 /*	$NetBSD: localedef.h,v 1.4 1996/04/09 20:55:31 cgd Exp $	*/
 

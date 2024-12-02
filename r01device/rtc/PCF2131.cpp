@@ -1,3 +1,10 @@
+/** RTC operation library for Arduino
+ *
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 #include	"rtc/RTC_NXP.h"
 
 PCF2131::PCF2131( I2C& interface, uint8_t i2c_address )

@@ -1,3 +1,10 @@
+/** LEDDriver operation library for Arduino
+ *
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 /** LED operation library for Arduino
  *	
  *	Abstraction class for each single LED. 
