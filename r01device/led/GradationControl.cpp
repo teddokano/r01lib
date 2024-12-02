@@ -1,3 +1,10 @@
+/** LEDDriver operation library for Arduino
+ *
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 #include	"led/GradationControl.h"
 
 GradationControl::GradationControl( PCA995x* dev_ptr, int group_num, uint32_t bitmap ) : 

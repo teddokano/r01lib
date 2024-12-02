@@ -1,3 +1,10 @@
+/** GPIO operation library for Arduino
+ *
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 /** GPIO SPI device abstracting class
  *
  *	This class provides common methods for all I2C devices

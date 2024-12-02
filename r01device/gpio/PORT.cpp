@@ -1,3 +1,10 @@
+/** GPIO operation library for Arduino
+ *
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 #include	"gpio/PORT.h"
 
 PORT::PORT( GPIO_base& gpio, int port_num, uint8_t _mask )

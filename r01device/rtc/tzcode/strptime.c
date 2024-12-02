@@ -1,3 +1,10 @@
+/** Time zone handling lib as a part of r01lib/r01device
+ * 	based on https://github.com/gitpan/Time-OlsonTZ-Data
+ *  
+ *	r01lib/r01device by Tedd OKANO
+ *  Released under the MIT license License
+ */
+
 /*	$OpenBSD: strptime.c,v 1.31 2023/03/02 16:21:51 millert Exp $ */
 /*	$NetBSD: strptime.c,v 1.12 1998/01/20 21:39:40 mycroft Exp $	*/
 /*-

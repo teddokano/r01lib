@@ -1,3 +1,10 @@
+/** RTC operation library for Arduino
+ *
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 #include	"rtc/RTC_NXP.h"
 
 RTC_NXP::RTC_NXP()

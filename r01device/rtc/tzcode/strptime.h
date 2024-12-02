@@ -1,3 +1,10 @@
+/** Time zone handling lib as a part of r01lib/r01device
+ * 	based on https://github.com/gitpan/Time-OlsonTZ-Data
+ *  
+ *	r01lib/r01device by Tedd OKANO
+ *  Released under the MIT license License
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
