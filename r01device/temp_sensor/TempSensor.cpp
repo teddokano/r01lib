@@ -12,9 +12,21 @@
 TempSensor::TempSensor( I2C& interface, uint8_t i2c_address ) : I2C_device( interface, i2c_address ){}
 TempSensor::~TempSensor(){}
 
-float TempSensor::read()
+template<> 
+int16_t TempSensor::read( void )
 {
-	return temp();
+	return read_Temp_register();
+};
+
+template<>
+float TempSensor::read( void )
+{
+	return read<int16_t>() / 256.0;
+};
+
+float TempSensor::temp()
+{
+	return read<float>();
 }
 
 TempSensor::operator float()
@@ -28,9 +40,9 @@ TempSensor::operator float()
 LM75B::LM75B( I2C& interface, uint8_t i2c_address ) : TempSensor( interface, i2c_address ){}
 LM75B::~LM75B(){}
 
-float LM75B::temp()
+int16_t LM75B::read_Temp_register( void )
 {
-	return read_r16( Temp ) / 256.0;
+	return (int16_t)read_r16( Temp );
 }
 
 void LM75B::thresholds( float v0, float v1 )

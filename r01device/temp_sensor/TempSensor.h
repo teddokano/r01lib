@@ -23,6 +23,9 @@
 class TempSensor : public I2C_device
 {
 public:
+	using raw_t		= int16_t;
+	using celsius_t	= float;
+	
 	enum mode {
 		COMPARATOR,	/**< Comparator mode	*/
 		INTERRUPT,	/**< Interrupt mode	*/
@@ -33,19 +36,32 @@ public:
 	 */
 	TempSensor( I2C& interface, uint8_t i2c_address );
 	virtual ~TempSensor();
-	virtual float temp( void )	= 0;
+	
+	/** Read temperature sensor
+	 * 
+	 *	Performs temperature sensor read. 
+	 *	
+	 *	This method need to be called with return type as 
+	 *	    celsius_t value = read<TempSensor::celsius_t>();
+	 *	    raw_t     value = read<TempSensor::raw_t>();
+	 *	
+	 * @return temperature sensor readout value
+	 */
+	template<class T>
+	T read( void );
 	
 	/** Get temperature value in degree Celsius [°C] 
 	 *
-	 *	This method simply calls "temp()" method	
-	 *
 	 * @return temperature value in degree Celsius [°C] 
 	 */
-	virtual float read( void );
-	
+	virtual float temp( void );
+
 	/** A short hand for reading pins
 	 */
 	operator	float();
+	
+private:	
+	virtual int16_t	read_Temp_register( void ) = 0;
 };
 
 
@@ -78,12 +94,6 @@ public:
 	 */
 	virtual ~LM75B();
 	
-	/** Get temperature value in degree Celsius [°C] 
-	 *
-	 * @return temperature value in degree Celsius [°C] 
-	 */
-	virtual float temp( void ) override;
-
 	/** Set Overtemperature shutdown threshold (Tos) and hysteresis (Thyst) in degree Celsius [°C] 
 	 *
 	 *	This method takes 2 values and higher value will set as the threshold (Tos) and 
@@ -99,7 +109,11 @@ public:
 	 * @param flag use LM75B::COMPARATOR or LM75B::INTERRUPT values
 	 */	
 	virtual void os_mode( mode flag );
-
+	
+private:
+	virtual int16_t read_Temp_register( void ) override;
+	
+public:
 #if DOXYGEN_ONLY
 	/** Get temperature value in degree Celsius [°C] 
 	 *
