@@ -11,7 +11,7 @@
  *  Example:
  *  @code
  *  #include	"r01lib.h"
- *  #include	"NAFE13388_UIM.h"
+ *  #include	"afe/NAFE13388_UIM.h"
  *  
  *  SPI				spi( D11, D12, D13, D10 );	//	MOSI, MISO, SCLK, CS
  *  NAFE13388_UIM	afe( spi );
