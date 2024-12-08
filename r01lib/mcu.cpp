@@ -127,7 +127,11 @@ void init_mcu( void )
 
 	/* I2C */
 	CLOCK_SetClockDiv( kCLOCK_DivLPI2C0, 1u );
+	CLOCK_SetClockDiv( kCLOCK_DivLPI2C1, 1u );
+	CLOCK_SetClockDiv( kCLOCK_DivLPI2C3, 1u );
 	CLOCK_AttachClk( kFRO12M_to_LPI2C0 );
+	CLOCK_AttachClk( kFRO12M_to_LPI2C1 );
+	CLOCK_AttachClk( kFRO12M_to_LPI2C3 );
 
 	/* SPI */
 	CLOCK_SetClockDiv( kCLOCK_DivLPSPI0, 1u );
