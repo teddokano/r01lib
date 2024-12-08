@@ -362,6 +362,144 @@ enum {
 	#define	PIN_LED_ON	false
 
 
+#elif	CPU_MCXA156VLL
+
+enum { 	
+	DISABLED_PIN, 
+	P0_0,
+	P0_1,
+	P0_2,
+	P0_3,
+	P0_6,
+	P0_16,
+	P0_17,
+	P0_18,
+	P0_19,
+	P0_20,
+	P0_21,
+	P0_22,
+	P0_23,
+	P1_0,
+	P1_1,
+	P1_2,
+	P1_3,
+	P1_4,
+	P1_5,
+	P1_6,
+	P1_7,
+	P1_8,
+	P1_9,
+	P1_10,
+	P1_11,
+	P1_12,
+	P1_13,
+	P1_14,
+	P1_15,
+	P1_29,
+	P1_30,
+	P1_31,
+	P2_0,
+	P2_1,
+	P2_2,
+	P2_3,
+	P2_4,
+	P2_5,
+	P2_6,
+	P2_7,
+	P2_10,
+	P2_11,
+	P2_12,
+	P2_13,
+	P2_15,
+	P2_16,
+	P2_17,
+	P2_19,
+	P2_20,
+	P2_21,
+	P2_23,
+	P3_0,
+	P3_1,
+	P3_6,
+	P3_7,
+	P3_8,
+	P3_9,
+	P3_10,
+	P3_11,
+	P3_12,
+	P3_13,
+	P3_14,
+	P3_15,
+	P3_16,
+	P3_17,
+	P3_18,
+	P3_19,
+	P3_20,
+	P3_21,
+	P3_22,
+	P3_27,
+	P3_28,
+	P3_29,
+	P3_30,
+	P3_31,
+	P4_2,
+	P4_3,
+	P4_4,
+	P4_5,
+	P4_6,
+	P4_7,
+};
+
+	#define	D0		P2_11
+	#define	D1		P2_10
+	#define	D2		P3_1
+	#define	D3		P3_12
+	#define	D4		P3_31
+	#define	D5		P3_14
+	#define	D6		P3_16
+	#define	D7		P1_14
+	#define	D8		P1_15
+	#define	D9		P3_17
+	#define	D10		P3_13
+	#define	D11		P3_15
+	#define	D12		P2_16
+	#define	D13		P2_12
+	#define	D18		P0_16
+	#define	D19		P0_17
+	#define	A0		P1_10
+	#define	A1		P2_5
+	#define	A2		P2_3
+	#define	A3		P2_4
+	#define	A4		P1_12
+	#define	A5		P1_13
+	#define	SW2		P1_7
+	#define	SW3		P0_6
+	#define	MB_AN	P3_30
+	#define	MB_RST	P3_29
+	#define	MB_CS	P1_3
+	#define	MB_SCK	P1_1
+	#define	MB_MISO	P1_2
+	#define	MB_MOSI	P1_0
+	#define	MB_PWM	P3_18
+	#define	MB_INT	P3_19
+	#define	MB_RX	P3_20
+	#define	MB_TX	P3_21
+	#define	MB_SCL	P3_27
+	#define	MB_SDA	P3_28
+	#define	RED		D3
+	#define	GREEN	D10
+	#define	BLUE	P3_0
+
+	#define	I3C_SDA		D18
+	#define	I3C_SCL		D19
+	#define	I2C_SDA		D18
+	#define	I2C_SCL		D19
+	#define	SPI_CS		D10
+	#define	SPI_MOSI	D11
+	#define	SPI_MISO	D12
+	#define	SPI_SCLK	D13
+
+	#define	PIN_LED_OFF	true
+	#define	PIN_LED_ON	false
 
 #elif	CPU_MCXA153VLH
 

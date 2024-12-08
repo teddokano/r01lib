@@ -114,7 +114,39 @@ void init_mcu( void )
 	#endif
 
 
-#else
+#elif	CPU_MCXA156VLL
+	
+	RESET_ReleasePeripheralReset( kLPUART0_RST_SHIFT_RSTn);
+	RESET_ReleasePeripheralReset( kPORT0_RST_SHIFT_RSTn );
+	RESET_ReleasePeripheralReset( kPORT1_RST_SHIFT_RSTn );
+	RESET_ReleasePeripheralReset( kGPIO1_RST_SHIFT_RSTn );
+	
+	/* Attach peripheral clock */
+	CLOCK_SetClockDiv( kCLOCK_DivI3C0_FCLK, 4U );
+	CLOCK_AttachClk( kFRO_HF_DIV_to_I3C0FCLK );
+
+	/* I2C */
+	CLOCK_SetClockDiv( kCLOCK_DivLPI2C0, 1u );
+	CLOCK_AttachClk( kFRO12M_to_LPI2C0 );
+
+	/* SPI */
+	CLOCK_SetClockDiv( kCLOCK_DivLPSPI0, 1u );
+	CLOCK_AttachClk( kFRO12M_to_LPSPI0 );
+
+	CLOCK_EnableClock( kCLOCK_GateGPIO0 );
+	CLOCK_EnableClock( kCLOCK_GateGPIO1 );
+	CLOCK_EnableClock( kCLOCK_GateGPIO2 );
+	CLOCK_EnableClock( kCLOCK_GateGPIO3 );
+	CLOCK_EnableClock( kCLOCK_GateGPIO4 );
+
+	RESET_PeripheralReset( kUTICK0_RST_SHIFT_RSTn );
+	
+	BOARD_InitPins();
+	BOARD_InitBootClocks();
+	BOARD_InitDebugConsole();
+
+
+#elif	CPU_MCXA153VLH
 	/* Attach clock to I3C 24MHZ */
 	CLOCK_SetClockDiv( kCLOCK_DivI3C0_FCLK, 2U );
 	CLOCK_AttachClk( kFRO_HF_DIV_to_I3C0FCLK );
@@ -137,6 +169,9 @@ void init_mcu( void )
 	BOARD_InitPins();
 	BOARD_InitBootClocks();
 	BOARD_InitDebugConsole();
+
+#else
+	#error Not supported CPU
 	
 #endif
 

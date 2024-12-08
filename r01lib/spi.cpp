@@ -31,6 +31,28 @@ extern "C" {
 	#define LPSPI_MASTER_CLK_FREQ CLOCK_GetLPFlexCommClkFreq(3u)
 	#define TRANSFER_SIZE     64U     /*! Transfer dataSize */
 	#define TRANSFER_BAUDRATE 500000U /*! Transfer baudrate - 500k */
+#elif	CPU_MCXA156VLL
+	#if 1	//	to use MikroBus connector
+		#define EXAMPLE_LPSPI_MASTER_BASEADDR         (LPSPI0)
+		#define EXAMPLE_LPSPI_MASTER_IRQN             (LPSPI0_IRQn)
+		#define EXAMPLE_LPSPI_DEALY_COUNT             0xFFFFF
+		#define LPSPI_MASTER_CLK_FREQ                 (CLOCK_GetLpspiClkFreq(0))
+		#define EXAMPLE_LPSPI_MASTER_PCS_FOR_INIT     (kLPSPI_Pcs0)
+		#define EXAMPLE_LPSPI_MASTER_PCS_FOR_TRANSFER (kLPSPI_MasterPcs0)
+		#define EXAMPLE_LPSPI_MASTER_IRQHandler       (LPSPI0_IRQHandler)
+		#define TRANSFER_SIZE     64U     /*! Transfer dataSize */
+		#define TRANSFER_BAUDRATE 500000U /*! Transfer baudrate - 500k */
+	#else	//	SPI0 is not routed to Arduino shield connector
+		#define EXAMPLE_LPSPI_MASTER_BASEADDR         (LPSPI1)
+		#define EXAMPLE_LPSPI_MASTER_IRQN             (LPSPI1_IRQn)
+		#define EXAMPLE_LPSPI_DEALY_COUNT             0xFFFFF
+		#define LPSPI_MASTER_CLK_FREQ                 (CLOCK_GetLpspiClkFreq(1))
+		#define EXAMPLE_LPSPI_MASTER_PCS_FOR_INIT     (kLPSPI_Pcs1)
+		#define EXAMPLE_LPSPI_MASTER_PCS_FOR_TRANSFER (kLPSPI_MasterPcs1)
+		#define EXAMPLE_LPSPI_MASTER_IRQHandler       (LPSPI1_IRQHandler)
+		#define TRANSFER_SIZE     64U     /*! Transfer dataSize */
+		#define TRANSFER_BAUDRATE 500000U /*! Transfer baudrate - 500k */
+	#endif
 #elif	CPU_MCXA153VLH
 	#define EXAMPLE_LPSPI_MASTER_BASEADDR         (LPSPI1)
 	#define EXAMPLE_LPSPI_MASTER_IRQN             (LPSPI1_IRQn)
@@ -42,12 +64,14 @@ extern "C" {
 	#define TRANSFER_SIZE     64U     /*! Transfer dataSize */
 	#define TRANSFER_BAUDRATE 500000U /*! Transfer baudrate - 500k */
 #else
+	#error Not supported CPU
 #endif
 
 SPI::SPI( int mosi, int miso, int sclk, int cs ) : Obj( true )
 {
 #ifdef	CPU_MCXN947VDF
 #elif	CPU_MCXN236VDF
+#elif	CPU_MCXA156VLL
 #elif	CPU_MCXA153VLH
 	RESET_ReleasePeripheralReset( kLPSPI1_RST_SHIFT_RSTn );
 #else
@@ -82,12 +106,18 @@ SPI::SPI( int mosi, int miso, int sclk, int cs ) : Obj( true )
 	_sclk.pin_mux( 2 );
 	_miso.pin_mux( 2 );
 	_cs.pin_mux(   2 );
+#elif	CPU_MCXA156VLL
+	_sclk.pin_mux( 2 );
+	_mosi.pin_mux( 2 );
+	_miso.pin_mux( 2 );
+	_cs.pin_mux(   2 );
 #elif	CPU_MCXA153VLH
 	_sclk.pin_mux( 2 );
 	_mosi.pin_mux( 2 );
 	_miso.pin_mux( 2 );
 	_cs.pin_mux(   2 );
 #else
+	#error Not supported CPU
 #endif
 }
 

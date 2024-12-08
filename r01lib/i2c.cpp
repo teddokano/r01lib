@@ -20,12 +20,14 @@ extern "C" {
 
 #ifdef	CPU_MCXN947VDF
 	#define EXAMPLE_I2C_MASTER_BASE			(LPI2C2_BASE)
-	#define LPI2C_MASTER_CLOCK_FREQUENCY 	CLOCK_GetLPFlexCommClkFreq(2u)
+	#define LPI2C_MASTER_CLOCK_FREQUENCY 	CLOCK_GetLPFlexCommClkFreq( 2u )
 	#define EXAMPLE_I2C_MASTER				((LPI2C_Type *)EXAMPLE_I2C_MASTER_BASE)
 #elif	CPU_MCXN236VDF
 	#define EXAMPLE_I2C_MASTER_BASE			(LPI2C2_BASE)
-	#define LPI2C_MASTER_CLOCK_FREQUENCY	CLOCK_GetLPFlexCommClkFreq(2u)
+	#define LPI2C_MASTER_CLOCK_FREQUENCY	CLOCK_GetLPFlexCommClkFreq( 2u )
 	#define EXAMPLE_I2C_MASTER				((LPI2C_Type *)EXAMPLE_I2C_MASTER_BASE)
+#elif	CPU_MCXA156VLL
+	#define LPI2C_MASTER_CLOCK_FREQUENCY	CLOCK_GetLpi2cClkFreq( 0u )
 #elif	CPU_MCXA153VLH
 	#define EXAMPLE_I2C_MASTER_BASE			LPI2C0
 	#define LPI2C_MASTER_CLOCK_FREQUENCY	CLOCK_GetLpi2cClkFreq()
@@ -33,6 +35,7 @@ extern "C" {
 #else
 	#error Not supported CPU
 #endif
+
 
 I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 {
@@ -46,15 +49,55 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 		panic( "FRDM-MCXN947 only support I2C_SDA(D18)/I2C_SCL(D19) pins for I2C" );
 	
 	constexpr int	mux_setting	= 2;
+	unit_base	= EXAMPLE_I2C_MASTER;
+	
 #elif	CPU_MCXN236VDF
 	if ( (sda == A4) && (scl == A5) )
 		;
 	else if ( (sda == MB_SDA) && (scl == MB_SCL) )
 		;
 	else
-		panic( "FRDM-MCXN947 only support I2C_SDA(D18)/I2C_SCL(D19) pins for I2C" );
+		panic( "FRDM-MCXN236 only support I2C_SDA(D18)/I2C_SCL(D19) pins for I2C" );
 	
 	constexpr int	mux_setting	= 2;
+	unit_base	= EXAMPLE_I2C_MASTER;
+	
+#elif	CPU_MCXA156VLL
+	int	mux_setting	= kPORT_MuxAlt2;
+
+	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
+	{
+		mux_setting	= kPORT_MuxAlt2;
+		unit_base	= LPI2C0;
+		RESET_ReleasePeripheralReset( kLPI2C0_RST_SHIFT_RSTn );
+	}
+	else if ( (sda == I2C_SDA) && (scl == I2C_SCL) )
+	{
+		mux_setting	= kPORT_MuxAlt2;
+		unit_base	= LPI2C0;
+		RESET_ReleasePeripheralReset( kLPI2C0_RST_SHIFT_RSTn );
+	}
+	else if ( (sda == MB_SDA) && (scl == MB_SCL) )
+	{
+		mux_setting	= kPORT_MuxAlt2;
+		unit_base	= LPI2C3;
+		RESET_ReleasePeripheralReset( kLPI2C3_RST_SHIFT_RSTn );
+	}
+	else if ( (sda == MB_MOSI) && (scl == MB_SCK) )
+	{
+		mux_setting	= kPORT_MuxAlt3;
+		unit_base	= LPI2C1;
+		RESET_ReleasePeripheralReset( kLPI2C1_RST_SHIFT_RSTn );
+	}
+	else if ( (sda == A4) && (scl == A5) )
+	{
+		mux_setting	= kPORT_MuxAlt2;
+		unit_base	= LPI2C1;
+		RESET_ReleasePeripheralReset( kLPI2C1_RST_SHIFT_RSTn );
+	}
+	else
+		panic( "FRDM-MCXA153 supports I3C_SDA/I3C_SCL, I2C_SDA(D18)/I2C_SCL(D19), MB_SDA/MB_SCL or MB_MOSI/MB_SCK pins for I2C" );
+
 #elif	CPU_MCXA153VLH
 	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
 		;
@@ -68,12 +111,15 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 		panic( "FRDM-MCXA153 supports I3C_SDA/I3C_SCL, I2C_SDA(D18)/I2C_SCL(D19), MB_SDA/MB_SCL or MB_MOSI/MB_SCK pins for I2C" );
 
 	constexpr int	mux_setting	= kPORT_MuxAlt3;
+	unit_base	= EXAMPLE_I2C_MASTER;
+	
 	RESET_ReleasePeripheralReset( kLPI2C0_RST_SHIFT_RSTn );
 #else
+	#error Not supported CPU
 #endif
 
 	LPI2C_MasterGetDefaultConfig( &masterConfig );
-	LPI2C_MasterInit( EXAMPLE_I2C_MASTER, &masterConfig, LPI2C_MASTER_CLOCK_FREQUENCY );
+	LPI2C_MasterInit( unit_base, &masterConfig, LPI2C_MASTER_CLOCK_FREQUENCY );
 	
 //	frequency( I2C_FREQ );
 	
@@ -83,19 +129,17 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 
 I2C::~I2C()
 {
-	LPI2C_MasterDeinit( EXAMPLE_I2C_MASTER );
+	LPI2C_MasterDeinit( unit_base );
 }
 
 void I2C::frequency( uint32_t frequency )
 {
-	LPI2C_MasterSetBaudRate( EXAMPLE_I2C_MASTER, LPI2C_MASTER_CLOCK_FREQUENCY, frequency );
+	LPI2C_MasterSetBaudRate( unit_base, LPI2C_MASTER_CLOCK_FREQUENCY, frequency );
 }
 
 void I2C::pullup( bool enable )
 {
 	int	flag	= enable ? DigitalInOut::PullUp : DigitalInOut::PullNone;
-	
-//	printf( "@@@@@@@@@@ %d\r\n", flag );
 	
 	_scl.mode( flag );
 	_sda.mode( flag );
@@ -106,28 +150,28 @@ status_t I2C::write( uint8_t address, const uint8_t *dp, int length, bool stop )
 	status_t	r = kStatus_Fail;
 	size_t		txCount	= 0xFFU;
 
-	if ( (r = LPI2C_MasterStart( EXAMPLE_I2C_MASTER, address, kLPI2C_Write )) )
+	if ( (r = LPI2C_MasterStart( unit_base, address, kLPI2C_Write )) )
 		return r;
 
-	LPI2C_MasterGetFifoCounts(EXAMPLE_I2C_MASTER, NULL, &txCount);
+	LPI2C_MasterGetFifoCounts(unit_base, NULL, &txCount);
 	while (txCount)
 	{
-		LPI2C_MasterGetFifoCounts(EXAMPLE_I2C_MASTER, NULL, &txCount);
+		LPI2C_MasterGetFifoCounts(unit_base, NULL, &txCount);
 	}
 
-	if ( LPI2C_MasterGetStatusFlags( EXAMPLE_I2C_MASTER ) & kLPI2C_MasterNackDetectFlag )
+	if ( LPI2C_MasterGetStatusFlags( unit_base ) & kLPI2C_MasterNackDetectFlag )
 		return kStatus_LPI2C_Nak;
 
-	if ( (r	= LPI2C_MasterSend( EXAMPLE_I2C_MASTER, (uint8_t *)dp, length )) )
+	if ( (r	= LPI2C_MasterSend( unit_base, (uint8_t *)dp, length )) )
 	{
 		if ( r == kStatus_LPI2C_Nak )
-			LPI2C_MasterStop( EXAMPLE_I2C_MASTER );
+			LPI2C_MasterStop( unit_base );
 
 		return r;
 	}
 
 	if ( stop )
-		return LPI2C_MasterStop( EXAMPLE_I2C_MASTER );
+		return LPI2C_MasterStop( unit_base );
 
 	return kStatus_Success;
 }
@@ -137,21 +181,21 @@ status_t I2C::read( uint8_t address, uint8_t *dp, int length, bool stop )
 	status_t	r = kStatus_Fail;
 	size_t		txCount	= 0xFFU;
 
-	if ( (r = LPI2C_MasterStart( EXAMPLE_I2C_MASTER, address, kLPI2C_Read )) )
+	if ( (r = LPI2C_MasterStart( unit_base, address, kLPI2C_Read )) )
 		return r;
 
 	do {
-		LPI2C_MasterGetFifoCounts( EXAMPLE_I2C_MASTER, NULL, &txCount );
+		LPI2C_MasterGetFifoCounts( unit_base, NULL, &txCount );
 	} while ( txCount );
 
-	if ( LPI2C_MasterGetStatusFlags( EXAMPLE_I2C_MASTER ) & kLPI2C_MasterNackDetectFlag )
+	if ( LPI2C_MasterGetStatusFlags( unit_base ) & kLPI2C_MasterNackDetectFlag )
 		return kStatus_LPI2C_Nak;
 
-	if ( (r	= LPI2C_MasterReceive( EXAMPLE_I2C_MASTER, dp, length )) )
+	if ( (r	= LPI2C_MasterReceive( unit_base, dp, length )) )
 		return r;
 
 	if ( stop )
-		return LPI2C_MasterStop( EXAMPLE_I2C_MASTER );
+		return LPI2C_MasterStop( unit_base );
 
 	return kStatus_Success;
 }

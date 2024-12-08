@@ -170,6 +170,7 @@ public:
 	
 private:
 	lpi2c_master_config_t	masterConfig;
+	LPI2C_Type				*unit_base;
 	DigitalInOut			_sda;
 	DigitalInOut			_scl;
 };

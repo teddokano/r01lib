@@ -21,9 +21,14 @@ extern "C" {
 #elif	CPU_MCXN236VDF
 	#define EXAMPLE_MASTER            	I3C1
 	#define I3C_MASTER_CLOCK_FREQUENCY	CLOCK_GetI3cClkFreq(1)
-#else
+#elif	CPU_MCXA156VLL
 	#define EXAMPLE_MASTER				I3C0
 	#define I3C_MASTER_CLOCK_FREQUENCY	CLOCK_GetI3CFClkFreq()
+#elif	CPU_MCXA153VLH
+	#define EXAMPLE_MASTER				I3C0
+	#define I3C_MASTER_CLOCK_FREQUENCY	CLOCK_GetI3CFClkFreq()
+#else
+	#error Target CPU is not supported
 #endif
 
 uint8_t					g_ibiBuff[ IBI_PAYLOAD_BUFFER_SIZE ];
@@ -51,14 +56,23 @@ I3C::I3C( int sda, int scl, uint32_t i2c_freq, uint32_t i3c_od_freq, uint32_t i3
 	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
 		;
 	else
-		panic( "FRDM-MCXN947 only support I3C_SDA/I3C_SCL pins for I3C" );
-#else // CPU_MCXN947VDF
+		panic( "FRDM-MCXN236 only support I3C_SDA/I3C_SCL pins for I3C" );
+#elif	CPU_MCXA156VLL
 	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
 		;
 	else if ( (sda == I2C_SDA) && (scl == I2C_SCL) )
 		;
 	else
 		panic( "FRDM-MCXA153 supports I3C_SDA/I3C_SCL or I2C_SDA(D18)/I2C_SCL(D19) pins for I3C" );
+#elif 	CPU_MCXA153VLH
+	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
+		;
+	else if ( (sda == I2C_SDA) && (scl == I2C_SCL) )
+		;
+	else
+		panic( "FRDM-MCXA153 supports I3C_SDA/I3C_SCL or I2C_SDA(D18)/I2C_SCL(D19) pins for I3C" );
+#else
+	#error Target CPU is not supported
 #endif // CPU_MCXN947VDF
 	
 	I3C_MasterGetDefaultConfig( &masterConfig );
