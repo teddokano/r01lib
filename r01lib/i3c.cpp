@@ -203,9 +203,10 @@ status_t I3C::ccc_broadcast( uint8_t ccc, const uint8_t *dp, uint8_t length, boo
 		r_code	= write( BROADCAST_ADDR, bp, length + 1 );
 		frequency();	//	revert to default frequency
 	}
-	
-	r_code	= write( BROADCAST_ADDR, bp, length + 1 );
-	
+	else
+	{
+		r_code	= write( BROADCAST_ADDR, bp, length + 1 );
+	}
 	return r_code;
 }
 
