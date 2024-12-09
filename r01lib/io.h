@@ -493,10 +493,10 @@ enum {
 	#define	I3C_SCL		D19
 	#define	I2C_SDA		D18
 	#define	I2C_SCL		D19
-	#define	SPI_CS		D10
-	#define	SPI_MOSI	D11
-	#define	SPI_MISO	D12
-	#define	SPI_SCLK	D13
+	#define	SPI_CS		MB_CS
+	#define	SPI_MOSI	MB_MOSI
+	#define	SPI_MISO	MB_MISO
+	#define	SPI_SCLK	MB_SCK
 
 	#define	PIN_LED_OFF	true
 	#define	PIN_LED_ON	false
