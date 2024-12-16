@@ -59,7 +59,7 @@ void LEDDriver::buffer_enable( bool flag )
 	}
 	
 	if ( flag ) {
-		bp	= new uint8_t[ n_channel ];
+		bp	= new uint8_t[ n_channel ];	//	no error check done but execution will be aboerted in NEWLIB when the allocation failed
 		for ( int i = 0; i < n_channel; i++ )
 			bp[ i ]	= 0x00;
 	}
