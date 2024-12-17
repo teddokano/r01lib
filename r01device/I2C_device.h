@@ -174,7 +174,7 @@ public:
 	
 	/** scan (class method)
 	 */
-	static void scan( I2C& target_i2c, uint8_t stop = 128 );
+	static void scan( I2C& target_i2c, uint8_t stop = 124 );
 
 	/** address
 	 * @return target address in 7bit notation (right justified)

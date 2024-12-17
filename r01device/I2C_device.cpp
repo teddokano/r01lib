@@ -36,15 +36,11 @@ void I2C_device::scan( I2C& target_i2c, uint8_t stop )
 		result[i] = !target_i2c.write( i, &dummy, 0 );
 	}
 
-	for ( uint8_t i = stop; i < 128; i++ ) {
-		result[i] = false;
-	}
-
-	PRINTF( "\r\nI2C scan result\r\n   " );
+	PRINTF( "\r\nI2C scan result (in range of 0x00 ~ 0x%02X)\r\n   ", stop - 1 );
 	for ( uint8_t x = 0; x < 16; x++ )
 		PRINTF( " %02X", x );
 	
-	for ( uint8_t i = 0; i < 128; i++ ) {
+	for ( uint8_t i = 0; i < stop; i++ ) {
 		if ( !( i % 16) )
 			PRINTF( "\r\n%02Xx:", i / 16 );
 
