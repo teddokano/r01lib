@@ -214,7 +214,12 @@ status_t I2C::reg_write( uint8_t targ, uint8_t reg, const uint8_t *dp, int lengt
 
 status_t I2C::reg_write( uint8_t targ, uint8_t reg, uint8_t data )
 {
-	return write( targ, &data, sizeof( data ) );
+	uint8_t	bp[ 2 ];
+	
+	bp[ 0 ]	= reg;
+	bp[ 1 ]	= data;
+
+	return write( targ, bp, 2 );
 }
 
 status_t I2C::reg_read( uint8_t targ, uint8_t reg, uint8_t *dp, int length )
