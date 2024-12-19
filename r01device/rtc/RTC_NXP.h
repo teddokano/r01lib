@@ -233,6 +233,11 @@ public:
 		LAST,
 		FIRST,
 	};
+	/** Interrupt output selector */
+	enum int_out_sel {
+		INT_A,
+		INT_B,
+	};
 
 	/** Create a PCF2131 instance connected to I2C with specified address
 	 *
