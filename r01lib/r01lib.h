@@ -16,6 +16,8 @@ extern "C" {
 #define scanf	DbgConsole_Scanf
 #define putchar	DbgConsole_Putchar
 #define getchar	DbgConsole_Getchar
+#else
+#define		SEMIHOST_OPERATION
 #endif
 
 #include	"i3c.h"
