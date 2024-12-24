@@ -294,7 +294,7 @@ I2C::err_cb_ptr I2C::err_callback( err_cb_ptr callback )
 void I2C::err_handling( status_t error, uint8_t address )
 {
 	if ( kStatus_LPI2C_Nak == error )
-		printf( "NAK from target: 0x%02X\r\n", address );		
+		printf( "NACK from target: 0x%02X\r\n", address );
 	else
 		printf( "error 0x%04lX @transfer on 0x%02X\r\n", error, address );
 }
