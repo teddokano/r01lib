@@ -37,7 +37,7 @@ extern "C" {
 #endif
 
 
-I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
+I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl ), err_cb( nullptr )
 {
 	if ( no_hw )
 		return;
@@ -96,7 +96,7 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 		RESET_ReleasePeripheralReset( kLPI2C1_RST_SHIFT_RSTn );
 	}
 	else
-		panic( "FRDM-MCXA153 supports I3C_SDA/I3C_SCL, I2C_SDA(D18)/I2C_SCL(D19), MB_SDA/MB_SCL or MB_MOSI/MB_SCK pins for I2C" );
+		panic( "FRDM-MCXA156 supports I3C_SDA/I3C_SCL, I2C_SDA(D18)/I2C_SCL(D19), MB_SDA/MB_SCL or MB_MOSI/MB_SCK pins for I2C" );
 
 #elif	CPU_MCXA153VLH
 	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
@@ -125,6 +125,8 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 	
 	_scl.pin_mux( mux_setting );
 	_sda.pin_mux( mux_setting );
+	
+	err_callback( err_handling );
 }
 
 I2C::~I2C()
@@ -147,57 +149,86 @@ void I2C::pullup( bool enable )
 
 status_t I2C::write( uint8_t address, const uint8_t *dp, int length, bool stop )
 {
-	status_t	r = kStatus_Fail;
-	size_t		txCount	= 0xFFU;
-
-	if ( (r = LPI2C_MasterStart( unit_base, address, kLPI2C_Write )) )
-		return r;
-
-	LPI2C_MasterGetFifoCounts(unit_base, NULL, &txCount);
-	while (txCount)
-	{
-		LPI2C_MasterGetFifoCounts(unit_base, NULL, &txCount);
-	}
-
-	if ( LPI2C_MasterGetStatusFlags( unit_base ) & kLPI2C_MasterNackDetectFlag )
-		return kStatus_LPI2C_Nak;
-
-	if ( (r	= LPI2C_MasterSend( unit_base, (uint8_t *)dp, length )) )
-	{
-		if ( r == kStatus_LPI2C_Nak )
-			LPI2C_MasterStop( unit_base );
-
-		return r;
-	}
-
-	if ( stop )
-		return LPI2C_MasterStop( unit_base );
-
-	return kStatus_Success;
+	volatile status_t	r;
+	
+	if ( (r = write_core( address, dp, length, stop )) )
+		if ( err_cb )
+			err_cb( r, address );
+	
+	return r;
 }
 
 status_t I2C::read( uint8_t address, uint8_t *dp, int length, bool stop )
 {
-	status_t	r = kStatus_Fail;
-	size_t		txCount	= 0xFFU;
+	volatile status_t	r;
+	
+	if ( (r = read_core( address, dp, length, stop )) )
+		if ( err_cb )
+			err_cb( r, address );
 
-	if ( (r = LPI2C_MasterStart( unit_base, address, kLPI2C_Read )) )
-		return r;
+	return r;
+}
 
-	do {
+status_t I2C::write_core( uint8_t address, const uint8_t *dp, int length, bool stop )
+{
+	status_t reVal        = kStatus_Fail;
+	size_t txCount        = 0xFFU;
+	
+	if ( kStatus_Success == (reVal	= LPI2C_MasterStart( unit_base, address, kLPI2C_Write)) )
+	{
 		LPI2C_MasterGetFifoCounts( unit_base, NULL, &txCount );
-	} while ( txCount );
+		while ( txCount )
+		{
+			LPI2C_MasterGetFifoCounts( unit_base, NULL, &txCount );
+		}
 
-	if ( LPI2C_MasterGetStatusFlags( unit_base ) & kLPI2C_MasterNackDetectFlag )
-		return kStatus_LPI2C_Nak;
+		if ( LPI2C_MasterGetStatusFlags( unit_base ) & kLPI2C_MasterNackDetectFlag )
+		{
+			return kStatus_LPI2C_Nak;
+		}
 
-	if ( (r	= LPI2C_MasterReceive( unit_base, dp, length )) )
-		return r;
+		reVal = LPI2C_MasterSend( unit_base, (uint8_t *)dp, length );
+		if (reVal != kStatus_Success)
+		{
+			if ( reVal == kStatus_LPI2C_Nak )
+			{
+				LPI2C_MasterStop( unit_base );
+			}
+			return reVal;
+		}
 
-	if ( stop )
-		return LPI2C_MasterStop( unit_base );
+		reVal = LPI2C_MasterStop( unit_base );
+		if ( reVal != kStatus_Success )
+		{
+			return reVal;
+		}
+	}
+	return reVal;
+}
 
-	return kStatus_Success;
+status_t I2C::read_core( uint8_t address, uint8_t *dp, int length, bool stop )
+{
+	status_t reVal        = kStatus_Fail;
+		
+	if ( kStatus_Success == (reVal = LPI2C_MasterRepeatedStart( unit_base, address, kLPI2C_Read )) )
+	{
+		reVal = LPI2C_MasterReceive( unit_base,  (uint8_t *)dp, length );
+		if ( reVal != kStatus_Success )
+		{
+			if ( reVal == kStatus_LPI2C_Nak )
+			{
+				LPI2C_MasterStop( unit_base );
+			}
+			return reVal;
+		}
+
+		reVal = LPI2C_MasterStop( unit_base );
+		if ( reVal != kStatus_Success )
+		{
+			return reVal;
+		}
+	}
+	return reVal;
 }
 
 status_t I2C::reg_write( uint8_t targ, uint8_t reg, const uint8_t *dp, int length )
@@ -250,6 +281,59 @@ uint8_t I2C::read( uint8_t targ, bool stop )
 	last_status	= read( targ, &data, sizeof( data ), stop );
 
 	return data;
+}
+
+I2C::err_cb_ptr I2C::err_callback( err_cb_ptr callback )
+{
+	err_cb_ptr	previous_cb	= err_cb;
+	err_cb	= callback;
+
+	return previous_cb;
+}
+
+void I2C::err_handling( status_t error, uint8_t address )
+{
+	if ( kStatus_LPI2C_Nak == error )
+		printf( "NAK from target: 0x%02X\r\n", address );		
+	else
+		printf( "error 0x%04lX @transfer on 0x%02X\r\n", error, address );
+}
+
+void I2C::scan( uint8_t start, uint8_t last, bool *result )
+{
+	uint8_t	dummy	= 0;
+
+	for ( uint8_t i = 0; i < last; i++ ) {
+		result[i]	= !write_core( i, &dummy, 0 );
+	}
+}
+
+void I2C::scan( uint8_t start, uint8_t last )
+{
+	bool	result[ 128 ];
+
+	scan( start, last, result );
+
+	printf( "\r\nI2C scan result (in range of 0x00 ~ 0x%02X)\r\n   ", last );
+	for ( uint8_t x = 0; x < 16; x++ )
+		printf( " %02X", x );
+	
+	for ( uint8_t i = 0; i < last; i++ )
+	{
+		if ( !( i % 16) )
+			printf( "\r\n%01Xx:", i / 16 );
+
+		if ( result[ i ] )
+			printf( " %02X", i );
+		else
+			printf( " --" );
+	}
+	printf( "\r\n\r\n" );			
+}
+
+void I2C::scan( uint8_t last )
+{
+	scan( 0, last );
 }
 
 status_t I2C::ccc_set( uint8_t ccc, uint8_t addr, uint8_t data )

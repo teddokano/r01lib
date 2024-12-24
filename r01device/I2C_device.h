@@ -173,8 +173,12 @@ public:
 	static bool ping( uint8_t addr );
 	
 	/** scan (class method)
+	 * 		thsi is a class-method to scan devices
+	 * 		
+	 * @param target_i2c I2C instance
+	 * @param last	the last address to limit scan range
 	 */
-	static void scan( I2C& target_i2c, uint8_t stop = 124 );
+	static void scan( I2C& target_i2c, uint8_t last = 124 );
 
 	/** address
 	 * @return target address in 7bit notation (right justified)

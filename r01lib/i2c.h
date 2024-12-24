@@ -24,6 +24,10 @@
 class I2C: public Obj
 {
 public:
+
+	/** defining pointer to NAK callback	*/
+	typedef void (*err_cb_ptr)( status_t status, uint8_t address );
+
 	/** constants for STOP-cindition setting  */
 	enum STOP_CONDITION
 	{
@@ -144,6 +148,46 @@ public:
 	 */
 	virtual uint8_t		read( uint8_t targ, bool stop = STOP );
 
+	/** registering error handling method
+	 *
+	 * @param err_cb_ptr pointer to error handling method. use "nullptr" to suppress any actions
+	 */
+	virtual err_cb_ptr	err_callback( err_cb_ptr );
+
+	/** default error handling callback method
+	 * 		this method will be called when I2C process got an error
+	 * 		the callback can be installed by err_callback method
+	 *
+	 * @param error error status code
+	 * @param address target address
+	 */
+	static void 		err_handling( status_t error, uint8_t address );
+
+	/** device scan
+	 *		device scan result will be stored in *bool
+	 *		
+	 * @param start	scan start address
+	 * @param last	scan last address
+	 */
+	virtual void		scan( uint8_t start, uint8_t last, bool *result );
+
+	/** device scan
+	 * 		device scan result will be shown on the screen
+	 * 		scan range can be specified by start and last parameters
+	 *
+	 * @param start	scan start address
+	 * @param last	scan last address
+	 */
+	virtual void		scan( uint8_t start, uint8_t last );
+
+	/** device scan
+	 * 		device scan result will be shown on the screen
+	 * 		scan range can be specified and last parameter
+	 *
+	 * @param last	scan last address
+	 */
+	virtual void		scan( uint8_t last = 124 );
+
 	/** method for I3C class compatibility (dummy method)
 	 * Does notheing but return kStatus_Success
 	 * This method is for just make easy device class using I3C
@@ -167,12 +211,17 @@ public:
 
 	/** variable for reporting last state */
 	status_t				last_status;
+
+protected:
+	virtual status_t	write_core( uint8_t address, const uint8_t *dp, int length, bool stop = STOP );
+	virtual status_t	read_core( uint8_t address, uint8_t *dp, int length, bool stop = STOP );
 	
 private:
 	lpi2c_master_config_t	masterConfig;
 	LPI2C_Type				*unit_base;
 	DigitalInOut			_sda;
 	DigitalInOut			_scl;
+	err_cb_ptr				err_cb;
 };
 
 #endif // R01LIB_I2C_H

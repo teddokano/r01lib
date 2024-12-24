@@ -27,29 +27,9 @@ void I2C_device::repeated_start_enable( bool en )
 	rs_dis	= !en;
 }
 
-void I2C_device::scan( I2C& target_i2c, uint8_t stop )
+void I2C_device::scan( I2C& target_i2c, uint8_t last )
 {
-	bool  result[ 128 ];
-	uint8_t	dummy	= 0;
-
-	for ( uint8_t i = 0; i < stop; i++ ) {
-		result[i] = !target_i2c.write( i, &dummy, 0 );
-	}
-
-	PRINTF( "\r\nI2C scan result (in range of 0x00 ~ 0x%02X)\r\n   ", stop - 1 );
-	for ( uint8_t x = 0; x < 16; x++ )
-		PRINTF( " %02X", x );
-	
-	for ( uint8_t i = 0; i < stop; i++ ) {
-		if ( !( i % 16) )
-			PRINTF( "\r\n%02Xx:", i / 16 );
-
-		if ( result[ i ] )
-			PRINTF( " %02X", i );
-		else
-			PRINTF( " --" );
-	}
-	PRINTF( "\r\n" );			
+	target_i2c.scan( last );
 }
 
 int I2C_device::tx( const uint8_t *data, uint16_t size, bool stop )
