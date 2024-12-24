@@ -303,7 +303,7 @@ void I2C::scan( uint8_t start, uint8_t last, bool *result )
 {
 	uint8_t	dummy	= 0;
 
-	for ( uint8_t i = 0; i < last; i++ ) {
+	for ( uint8_t i = 0; i <= last; i++ ) {
 		result[i]	= !write_core( i, &dummy, 0 );
 	}
 }
@@ -316,7 +316,7 @@ void I2C::scan( uint8_t start, uint8_t last )
 
 	printf( "\r\nI2C scan result (in range of 0x00 ~ 0x%02X)\r\n   ", last );
 	for ( uint8_t x = 0; x < 16; x++ )
-		printf( " %02X", x );
+		printf( " x%01X", x );
 	
 	for ( uint8_t i = 0; i < last; i++ )
 	{
