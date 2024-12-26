@@ -299,13 +299,16 @@ void I2C::err_handling( status_t error, uint8_t address )
 		printf( "error 0x%04lX @transfer on 0x%02X\r\n", error, address );
 }
 
-void I2C::scan( uint8_t start, uint8_t last, bool *result )
+bool I2C::ping( uint8_t addr )
 {
 	uint8_t	dummy	= 0;
+	return !write_core( addr, &dummy, 0 );
+}
 
-	for ( uint8_t i = 0; i <= last; i++ ) {
-		result[i]	= !write_core( i, &dummy, 0 );
-	}
+void I2C::scan( uint8_t start, uint8_t last, bool *result )
+{
+	for ( uint8_t i = 0; i <= last; i++ )
+		result[i]	= ping( i );
 }
 
 void I2C::scan( uint8_t start, uint8_t last )

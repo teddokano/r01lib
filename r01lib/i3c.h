@@ -200,6 +200,10 @@ public:
 	 */	
 	static void		master_callback( I3C_Type *base, i3c_master_handle_t *handle, status_t status, void *userData );
 
+protected:
+	using	I2C::ping;
+	using	I2C::scan;
+
 private:
 	status_t	xfer( i3c_direction_t dir, i3c_bus_type_t type, uint8_t targ, uint8_t *dp, int length, bool stop = STOP );
 

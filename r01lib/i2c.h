@@ -163,6 +163,14 @@ public:
 	 */
 	static void 		err_handling( status_t error, uint8_t address );
 
+	/** ping
+	 *		check device returns ACK
+	 *
+	 * @param addr	target address
+	 * @return true if ACKs
+	 */
+	virtual bool		ping( uint8_t addr );
+
 	/** device scan
 	 *		device scan result will be stored in *bool
 	 *		

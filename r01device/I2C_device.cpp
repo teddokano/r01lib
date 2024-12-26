@@ -127,6 +127,11 @@ void I2C_device::bit_op16( uint8_t reg, uint16_t mask, uint16_t value )
 	write_r16( reg, v );
 }
 
+bool I2C_device::ping( void )
+{
+	return i2c.ping( i2c_addr );
+}
+
 uint8_t I2C_device::address( void )
 {
 	return i2c_addr;
