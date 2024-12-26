@@ -51,6 +51,7 @@ uint8_t AD5161_SPI::value( uint8_t v )
 	uint8_t	r;
 	
 	spi.write( &v, &r, 1 );
+	_value	= v;
 	
 	return r;
 }
