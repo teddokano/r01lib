@@ -29,4 +29,7 @@ extern "C" {
 #include	"BusInOut.h"
 #include	"mcu.h"
 
+#include	<iostream>
+#include	<iomanip>
+
 #endif // R01LIB_R01LIB_H
