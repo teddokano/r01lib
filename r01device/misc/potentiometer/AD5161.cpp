@@ -1,3 +1,9 @@
+/*
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 #include	"misc/potentiometer/AD5161.h"
 
 AD5161_base::AD5161_base() : _value( 0 ){}

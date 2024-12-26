@@ -1,3 +1,9 @@
+/*
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
 #include	"misc/eeprom/M24C02.h"
 
 M24C02::M24C02( I2C& wire, uint8_t i2c_address ) : I2C_device( wire, i2c_address )
