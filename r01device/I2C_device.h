@@ -1,9 +1,5 @@
-/** I2C device abstracting class
- *
- *	This class provides common methods for all I2C devices
- *
- *  @class   I2C_device
- *  @author  Tedd OKANO
+/*
+ *  @author Tedd OKANO
  *
  *  Released under the MIT license License
  */

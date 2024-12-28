@@ -1,7 +1,5 @@
-/** test_LM75B operation library for Arduino
- *
- *  @class	test_LM75B
- *  @author	Tedd OKANO
+/*
+ *  @author Tedd OKANO
  *
  *  Released under the MIT license License
  */
