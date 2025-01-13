@@ -13,6 +13,10 @@ extern "C" {
 #include	"fsl_utick.h"
 }
 
+#include	<functional>
+
+using	ticker_callback_fp_t	= std::function<void(void)>;
+
 /** Ticker class
  *	
  *  @class Ticker
@@ -39,7 +43,7 @@ public:
 	 * @param callback callback function
 	 * @param sec periodic cycle to call the callback
 	 */
-	virtual void	attach( utick_callback_t callback, float sec );
+	virtual void	attach( ticker_callback_fp_t callback, float sec );
 
 private:
 	UTICK_Type	*utick_type;
