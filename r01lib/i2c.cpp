@@ -149,7 +149,7 @@ void I2C::pullup( bool enable )
 
 status_t I2C::write( uint8_t address, const uint8_t *dp, int length, bool stop )
 {
-	volatile status_t	r;
+	status_t	r;
 	
 	if ( (r = write_core( address, dp, length, stop )) )
 		if ( err_cb )
@@ -160,7 +160,7 @@ status_t I2C::write( uint8_t address, const uint8_t *dp, int length, bool stop )
 
 status_t I2C::read( uint8_t address, uint8_t *dp, int length, bool stop )
 {
-	volatile status_t	r;
+	status_t	r;
 	
 	if ( (r = read_core( address, dp, length, stop )) )
 		if ( err_cb )

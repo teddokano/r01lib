@@ -85,7 +85,7 @@ void PCF2131::alarm( alarm_setting digit, int val )
 void PCF2131::alarm( alarm_setting digit, int val, int int_sel )
 {
 	int	v = (val == 0x80) ? 0x80 : dec2bcd( val );
-	intfp->reg_w( Second_alarm + digit, v );
+	intfp->reg_w( (uint8_t)Second_alarm + (uint8_t)digit, v );
 	intfp->bit_op8( int_mask_reg[ int_sel ][ 0 ], ~0x04, 0x00 );
 	intfp->bit_op8( Control_2, ~0x02, 0x02 );
 }
