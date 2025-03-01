@@ -46,20 +46,20 @@
 #include	"r01lib.h"
 #include	"SPI_for_AFE.h"
 
-class NAFE13388_Base : public SPI_for_AFE
+class AFE_base : public SPI_for_AFE
 {
-public:	
-	
+public:
+
 	/** ADC readout types */
 	using raw_t			= int32_t;
 	using microvolt_t	= double;
 	constexpr static float immidiate_read	= -1.0;
 
-	/** Constructor to create a NAFE13388 instance */
-	NAFE13388_Base( SPI& spi, int nINT, int DRDY, int SYN, int nRESET );
+	/** Constructor to create a AFE_base instance */
+	AFE_base( SPI& spi, int nINT, int DRDY, int SYN, int nRESET );
 
 	/** Destractor */
-	virtual ~NAFE13388_Base();
+	virtual ~AFE_base();
 	
 	/** Begin the device operation
 	 *
@@ -70,6 +70,99 @@ public:
 	 *	(4) Call boot()
 	 */
 	virtual void begin( void );
+
+	/** Set system-level config registers */
+	virtual void boot( void )	= 0;
+
+	/** Issue RESET command */
+	virtual void reset( bool hardware_reset = false )	= 0;
+	
+	/** Configure logical channel
+	 *
+	 * @param ch logical channel number (0 ~ 15)
+	 * @param cc0	16bit value to be set CH_CONFIG0 register (0x20)
+	 * @param cc1	16bit value to be set CH_CONFIG1 register (0x21)
+	 * @param cc2	16bit value to be set CH_CONFIG2 register (0x22)
+	 * @param cc3	16bit value to be set CH_CONFIG3 register (0x23)
+	 */
+	virtual void logical_ch_config( int ch, uint16_t cc0, uint16_t cc1, uint16_t cc2, uint16_t cc3 )	= 0;
+
+	/** Configure logical channel
+	 *
+	 * @param ch logical channel number (0 ~ 15)
+	 * @param cc array for CH_CONFIG0, CH_CONFIG1, CH_CONFIG2 and CH_CONFIG3 values
+	 */
+	virtual void logical_ch_config( int ch, const uint16_t (&cc)[ 4 ] )	= 0;
+
+	/** ADC channel read
+	 *
+	 * @param ch logical channel number (0 ~ 15)
+	 */
+	virtual int32_t	adc_read( int ch )	= 0;
+
+	/** Read ADC
+	 *	Performs ADC read. 
+	 *	If the delay is not given, just the ADC register is read.
+	 *	If the delay is given, measurement is started in this method and read-out after delay.
+	 *	The delay between start and read-out is specified in seconds. 
+	 *	
+	 *	This method need to be called with return type as 
+	 *	    double value = read<NAFE13388::microvolt_t>( 0, 0.01 );
+	 *	    int32_t value = read<NAFE13388::raw_t>( 0, 0.01 );
+	 *	
+	 * @param ch logical channel number (0 ~ 15)
+	 * @param delay ADC result read-out delay after measurement start if given
+	 * @return ADC readout value
+	 */
+	template<class T>
+	T read( int ch, float delay = immidiate_read );
+
+	/** Start ADC
+	 *
+	 * @param ch logical channel number (0 ~ 15)
+	 */
+	virtual void start( int ch )	= 0;
+
+	/** Number of enabled logical channels */
+	int		enabled_channels;
+	
+	/** Coefficient to convert from ADC read value to micro-volt */
+	double	coeff_uV[ 16 ];
+
+private:
+	void start_and_delay( int ch, float delay );
+
+protected:
+	DigitalIn	pin_nINT;
+	DigitalIn	pin_DRDY;
+	DigitalOut	pin_SYN;
+	DigitalOut	pin_nRESET;
+};
+
+class NAFE13388_Base : public AFE_base
+{
+public:
+	
+	/** Constructor to create a AFE_base instance */
+	NAFE13388_Base( SPI& spi, int nINT, int DRDY, int SYN, int nRESET );
+
+	/** Destractor */
+	virtual ~NAFE13388_Base();
+	
+
+	using	ch_setting_t	= const uint16_t[ 4 ];
+
+	typedef struct	_reference_point	{
+		double	voltage;
+		int32_t	data;
+	} reference_point;
+
+	typedef struct	_ref_points	{
+		int				coeff_index;
+		reference_point	high;
+		reference_point	low;
+		int				cal_index;
+	} ref_points;
 
 	/** Set system-level config registers */
 	virtual void boot( void );
@@ -94,22 +187,11 @@ public:
 	 */
 	virtual void logical_ch_config( int ch, const uint16_t (&cc)[ 4 ] );
 
-	/** Read ADC
-	 *	Performs ADC read. 
-	 *	If the delay is not given, just the ADC register is read.
-	 *	If the delay is given, measurement is started in this method and read-out after delay.
-	 *	The delay between start and read-out is specified in seconds. 
-	 *	
-	 *	This method need to be called with return type as 
-	 *	    double value = read<NAFE13388::microvolt_t>( 0, 0.01 );
-	 *	    int32_t value = read<NAFE13388::raw_t>( 0, 0.01 );
-	 *	
+	/** ADC channel read
+	 *
 	 * @param ch logical channel number (0 ~ 15)
-	 * @param delay ADC result read-out delay after measurement start if given
-	 * @return ADC readout value
 	 */
-	template<class T>
-	T read( int ch, float delay = immidiate_read );
+	virtual int32_t	adc_read( int ch );
 
 	/** Start ADC
 	 *
@@ -117,16 +199,6 @@ public:
 	 */
 	virtual void start( int ch );
 
-	/** Number of enabled logical channels */
-	int		enabled_channels;
-	
-	/** Coefficient to convert from ADC read value to micro-volt */
-	double	coeff_uV[ 16 ];
-	
-private:
-	void start_and_delay( int ch, float delay );
-	
-public:
 	enum class Register16 : uint16_t {
 		CH_CONFIG0				= 0x20,
 		CH_CONFIG1				= 0x21,
@@ -255,18 +327,6 @@ public:
 		SERIAL0			= 0xAF,
 	};
 
-	template<class T>
-	friend T operator+( const T& rn, const int n )
-	{
-		return T( static_cast<uint16_t>( rn ) + n );
-	}
-
-	template<class T>
-	friend T operator+( const int n, const T& rn )
-	{
-		return T( n + static_cast<uint16_t>( rn ) );
-	}
-
 	enum Command : uint16_t {
 		CMD_CH0 			= 0x0000,
 		CMD_CH1 			= 0x0001,
@@ -303,25 +363,37 @@ public:
 		CMD_CALC_CRC_FAC	= 0x2008,
 	};
 
+	template<class T>
+	friend T operator+( const T& rn, const int n )
+	{
+		return T( static_cast<uint16_t>( rn ) + n );
+	}
+
+	template<class T>
+	friend T operator+( const int n, const T& rn )
+	{
+		return T( n + static_cast<uint16_t>( rn ) );
+	}
+
 	/** Command
 	 *	
 	 * @param com "Comand" type or uint16_t value
 	 */
-	void		command( uint16_t com );
+	virtual void		command( uint16_t com );
 
 	/** Write register
 	 *
 	 *	Writes register. Register width is selected by reg type (Register16 ot Register24)
 	 * @param reg register specified by Register16 member
 	 */
-	void		reg( Register16 r, uint16_t value );
+	virtual void		reg( Register16 r, uint16_t value );
 
 	/** Write register
 	 *
 	 *	Writes register. Register width is selected by reg type (Register16 ot Register24)
 	 * @param reg register specified by Register24 member
 	 */
-	void		reg( Register24 r, uint32_t value );
+	virtual void		reg( Register24 r, uint32_t value );
 
 	/** Read register
 	 *
@@ -329,7 +401,7 @@ public:
 	 * @param reg register specified by Register16 member
 	 * @return readout value
 	 */
-	uint16_t	reg( Register16 r );
+	virtual uint16_t	reg( Register16 r );
 
 	/** Read register
 	 *
@@ -337,7 +409,7 @@ public:
 	 * @param reg register specified by Register24 member
 	 * @return readout value
 	 */
-	uint32_t	reg( Register24 r );
+	virtual uint32_t	reg( Register24 r );
 	
 	/** Register bit operation
 	 *
@@ -358,7 +430,7 @@ public:
 		
 		return v;
 	}
-
+	
 	/** Read part_number
 	 *
 	 * @return 0x13388B40 
@@ -382,11 +454,9 @@ public:
 	 * @return die temperature in celsius
 	 */
 	float	temperature( void );
-private:
-	DigitalIn	pin_nINT;
-	DigitalIn	pin_DRDY;
-	DigitalOut	pin_SYN;
-	DigitalOut	pin_nRESET;
+	
+	void	gain_offset_coeff( const ref_points &ref );
+	void	recalibrate( int pga_gain_index, bool use_positive_side = true, int ch_GND = 14, int ch_REF = 15 );
 };
 
 class NAFE13388 : public NAFE13388_Base
