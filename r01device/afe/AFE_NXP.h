@@ -45,15 +45,17 @@
 #include	<stdint.h>
 #include	"r01lib.h"
 #include	"SPI_for_AFE.h"
+#include	<cmath>
 
 class AFE_base : public SPI_for_AFE
 {
 public:
 
 	/** ADC readout types */
-	using raw_t			= int32_t;
-	using microvolt_t	= double;
+	using raw_t								= int32_t;
+	using microvolt_t						= double;
 	constexpr static float immidiate_read	= -1.0;
+	constexpr static float default_delay	= INFINITY;
 
 	/** Constructor to create a AFE_base instance */
 	AFE_base( SPI& spi, int nINT, int DRDY, int SYN, int nRESET );
@@ -64,10 +66,8 @@ public:
 	/** Begin the device operation
 	 *
 	 *	NAFE13388 initialization. It does following steps
-	 *	(1) Set pins 2 and 3 are input for nINT and nDRDY
-	 *	(2) Set pins 5 and 6 are output and fixed to HIGH for ADC_SYN and ADC_nRESET
-	 *	(3) Call reset()
-	 *	(4) Call boot()
+	 *	(1) Call reset()
+	 *	(2) Call boot()
 	 */
 	virtual void begin( void );
 
@@ -94,6 +94,12 @@ public:
 	 */
 	virtual void logical_ch_config( int ch, const uint16_t (&cc)[ 4 ] )	= 0;
 
+	/** Logical channel disable
+	 *
+	 * @param ch logical channel number (0 ~ 15)
+	 */
+	virtual void logical_ch_disable( int ch )	= 0;
+
 	/** ADC channel read
 	 *
 	 * @param ch logical channel number (0 ~ 15)
@@ -115,7 +121,7 @@ public:
 	 * @return ADC readout value
 	 */
 	template<class T>
-	T read( int ch, float delay = immidiate_read );
+	T read( int ch, float delay = default_delay );
 
 	/** Start ADC
 	 *
@@ -129,10 +135,16 @@ public:
 	/** Coefficient to convert from ADC read value to micro-volt */
 	double	coeff_uV[ 16 ];
 
+	/** Channel delay */
+	double	ch_delay[ 16 ];
+	static double	delay_accuracy;
+
 private:
-	void start_and_delay( int ch, float delay );
+	void	start_and_delay( int ch, float delay );
 
 protected:
+	int 	bit_count( uint32_t value );
+
 	DigitalIn	pin_nINT;
 	DigitalIn	pin_DRDY;
 	DigitalOut	pin_SYN;
@@ -149,8 +161,7 @@ public:
 	/** Destractor */
 	virtual ~NAFE13388_Base();
 	
-
-	using	ch_setting_t	= const uint16_t[ 4 ];
+	using	ch_setting_t	= uint16_t[ 4 ];
 
 	typedef struct	_reference_point	{
 		double	voltage;
@@ -186,6 +197,16 @@ public:
 	 * @param cc array for CH_CONFIG0, CH_CONFIG1, CH_CONFIG2 and CH_CONFIG3 values
 	 */
 	virtual void logical_ch_config( int ch, const uint16_t (&cc)[ 4 ] );
+
+private:	
+	double 	calc_delay( int ch );
+
+public:
+	/** Logical channel disable
+	 *
+	 * @param ch logical channel number (0 ~ 15)
+	 */
+	virtual void logical_ch_disable( int ch );
 
 	/** ADC channel read
 	 *
@@ -455,8 +476,25 @@ public:
 	 */
 	float	temperature( void );
 	
+	
+	/** Gain and offset coefficient customization
+	 *
+	 *	Sets gain and offset coefficients with given target ADC read-out values at two reference voltaeg points
+	 * @param ref struct to define the target coefficient index and two reference poins and reference pre-calibrated coeffs
+	 */
 	void	gain_offset_coeff( const ref_points &ref );
-	void	recalibrate( int pga_gain_index, bool use_positive_side = true, int ch_GND = 14, int ch_REF = 15 );
+
+	/** On-board calibration with specified input and voltage
+	 *
+	 *	Updates coefficients at pga_gain_index
+	 *	
+	 * @param pga_gain_index			PGA gain index to measure and update the coefficients
+	 * @param channel_selection			Logical channel number for calibration use
+	 * @param reference_source_voltage	Reference voltage. This is not required if internal reference is used
+	 * @param input_select				Physical input channel selection. It will use internal voltage reference if this value is 0
+	 * @param use_positive_side			Physical input channel selection AnP or AnN
+	 */
+	void	recalibrate( int pga_gain_index, int channel_selection = 15, int input_select = 0, double reference_source_voltage = 0, bool use_positive_side = true );
 };
 
 class NAFE13388 : public NAFE13388_Base
