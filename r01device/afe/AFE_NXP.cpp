@@ -85,11 +85,6 @@ NAFE13388_Base::~NAFE13388_Base()
 void NAFE13388_Base::boot( void )
 {
 	command( CMD_ABORT ); 
-	reg( GPIO_CONFIG0, 0x0000 );
-	reg( GPIO_CONFIG1, 0x0000 );
-	reg( GPIO_CONFIG2, 0x0000 );
-	reg( GPO_DATA,     0x0000 );
-	reg( GPI_DATA,     0x0000 );
 	wait( 0.001 );
 	
 	reg( SYS_CONFIG0,  0x0010 );
@@ -361,6 +356,10 @@ void NAFE13388_Base::recalibrate( int pga_gain_index, int channel_selection, int
 		logical_ch_disable( channel_selection );
 }
 
+void NAFE13388_Base::blink_leds( void )
+{
+}
+
 
 
 /* NAFE13388 class ******************************************/
@@ -383,6 +382,34 @@ NAFE13388_UIM::NAFE13388_UIM( SPI& spi, int nINT, int DRDY, int SYN, int nRESET 
 
 NAFE13388_UIM::~NAFE13388_UIM()
 {
+}
+
+void NAFE13388_UIM::blink_leds( void )
+{
+	std::vector<uint16_t>	pattern	= {
+			0x8000, 0x0040, 0x0100, 0x0080, 0x0200, 0x0400, 0x0800, 0x1000,
+			0x2000, 0x4000, 0x2000, 0x1000, 0x0800, 0x0400, 0x0200, 0x0080,
+			0x0100, 0x0040,
+	};
+	reg( GPIO_CONFIG0, 0xFFC0 );
+	reg( GPIO_CONFIG1, 0xFFC0 );
+	reg( GPIO_CONFIG2, 0x0000 );
+
+	for ( auto i = 0; i < 2; i++ )
+		for_each( pattern.begin(), pattern.end(), [ this ]( auto p ){ reg( GPO_DATA, p ); wait( 0.02 ); } );
+
+	pattern.resize( 10 );
+	uint16_t	pv	= 0;
+
+	for ( auto i = 0; i < 4; i++ )
+		for_each(
+			pattern.begin(),
+			pattern.end(),
+			[ &pv, i, this ]( auto p ){
+				pv	= (i % 2) ? pv & ~p : pv | p;
+				reg( GPO_DATA, pv ); wait( 0.02 );
+			}
+		);
 }
 
 //double	NAFE13388::coeff_uV[ 16 ];

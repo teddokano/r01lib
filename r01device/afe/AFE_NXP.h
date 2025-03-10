@@ -495,6 +495,9 @@ public:
 	 * @param use_positive_side			Physical input channel selection AnP or AnN
 	 */
 	void	recalibrate( int pga_gain_index, int channel_selection = 15, int input_select = 0, double reference_source_voltage = 0, bool use_positive_side = true );
+
+	/** Blinks LEDs on GPIO pins */
+	void blink_leds( void );
 };
 
 class NAFE13388 : public NAFE13388_Base
@@ -515,6 +518,8 @@ public:
 
 	/** Destractor */
 	virtual ~NAFE13388_UIM();
+
+	void blink_leds( void );
 };
 
 
