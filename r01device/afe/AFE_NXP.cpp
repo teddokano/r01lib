@@ -151,6 +151,8 @@ double NAFE13388_Base::calc_delay( int ch )
 												  256, 358, 512, 716, 
 												  1024, 1664, 3276, 7680, 19200, 23040, };
 	
+	command( ch );
+
 	uint16_t ch_config1	= reg( CH_CONFIG1 );
 	uint16_t ch_config2	= reg( CH_CONFIG2 );
 	
