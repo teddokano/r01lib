@@ -119,8 +119,6 @@ void NAFE13388_Base::reset( bool hardware_reset )
 
 void NAFE13388_Base::logical_ch_config( int ch, const uint16_t (&cc)[ 4 ] )
 {	
-	constexpr double	pga_gain[]	= { 0.2, 0.4, 0.8, 1, 2, 4, 8, 16 };
-	
 	command( ch );
 	
 	for ( auto i = 0; i < 4; i++ )
@@ -290,11 +288,15 @@ void NAFE13388_Base::gain_offset_coeff( const ref_points &ref )
 	reg( OFFSET_COEFF0 + ref.coeff_index, offset_coeff_new );
 }
 
-void NAFE13388_Base::recalibrate( int pga_gain_index, int channel_selection, int input_select, double reference_source_voltage, bool use_positive_side )
+NAFE13388_Base::CalibrationError NAFE13388_Base::self_calibrate( GainPGA pga_gain_index, int channel_selection, int input_select, double reference_source_voltage, bool use_positive_side )
 {
-	constexpr	auto	low_gain_index	= 4;
+	constexpr	auto	low_gain_index	= 2;
 	auto				channel_in_use	= false;
 	ch_setting_t		tmp_ch_config;
+	int					gain_index		= static_cast<int>( pga_gain_index );
+	
+	//	logical channel selection to perform the self-calibration
+	//	if the chennel in-use, save channel setting to temporal memory
 	
 	if ( reg( CH_CONFIG4 ) & (0x1 << channel_selection) )
 	{
@@ -306,56 +308,88 @@ void NAFE13388_Base::recalibrate( int pga_gain_index, int channel_selection, int
 			tmp_ch_config[ i ]	= reg( CH_CONFIG0 + i );
 	}
 	
+	//	if user doesn't specify the channel and voltage, use REFH or REFL
+	
 	if ( !input_select )
 	{
-		if ( pga_gain_index <= low_gain_index )
-		{
-			input_select	= 0x5;	//	REFH for low gain
-			reference_source_voltage	= 2.30;
-		}
-		else
-		{
-			input_select	= 0x6;	//	REFL for high gain
-			reference_source_voltage	= 0.20;
-		}
+		bool	low_gain	= (gain_index <= low_gain_index);
+
+		input_select				= low_gain ? 0x5 : 0x6;
+		reference_source_voltage	= (reg( low_gain ? OPT_COEF1 : OPT_COEF2 ) * 5.00) / (double)(1 << 24);
+
+#if 1
+		printf( "==== self-calibration for PGA gain setting: x%3.1lf\r\n", pga_gain[ gain_index ] );
+		printf( "gain = %s\r\n", low_gain ? "low" : "high" );
+		printf( "REF[H|L] = %10.8lfV\r\n", reference_source_voltage );
+#endif
 	}
 	
-	const uint16_t		REF_GND		= 0x0011  | (pga_gain_index << 5);
+	//	logical channel settings
+	//	Total 3 settings are prepared to measure reference_voltage, internal-GND and AICOM
+	
+	const uint16_t		REF_GND		= 0x0011  | (gain_index << 5);
 	const uint16_t		REF_V		= (input_select << (use_positive_side ? 12 : 8)) | REF_GND;
-	const uint16_t		ch_config1	= (pga_gain_index << 12) | 0x00E4;
-	constexpr uint16_t	ch_config2	= 0x8400;
+	const uint16_t		REF_COM		= 0x7700 | REF_GND;
+	const uint16_t		ch_config1	= (gain_index << 12) | 0x00E4;
+	constexpr uint16_t	ch_config2	= 0x8480;
 	constexpr uint16_t	ch_config3	= 0x0000;
 
-	const ch_setting_t	refh	= { REF_V,   ch_config1, ch_config2, ch_config3 };
-	const ch_setting_t	refg	= { REF_GND, ch_config1, ch_config2, ch_config3 };
+	const ch_setting_t	refh	= { REF_V,   ch_config1, ch_config2,           ch_config3 };
+	const ch_setting_t	refg	= { REF_GND, ch_config1, ch_config2,           ch_config3 };
+	const ch_setting_t	refc	= { REF_COM, ch_config1, ch_config2 & ~0x0080, ch_config3 };	//CH_CHOP:off
 
+	//	forcing to set unity-gain and zero-offset
+
+	constexpr raw_t	default_gain_coeff_value	= 0x1 << 22;
+	constexpr raw_t	default_offset_coeff_value	= 0;
+
+	reg( GAIN_COEFF0   + gain_index, default_gain_coeff_value   );
+	reg( OFFSET_COEFF0 + gain_index, default_offset_coeff_value );
+	
+	//	measure the logical channel with those different 3 settings
+	
 	logical_ch_config( channel_selection, refh );	
 	raw_t	data_REF	= read<raw_t>( channel_selection );
 
 	logical_ch_config( channel_selection, refg );
 	raw_t	data_GND	= read<raw_t>( channel_selection );
 
-	constexpr double	pga_gain[]	= { 0.2, 0.4, 0.8, 1, 2, 4, 8, 16 };
+	logical_ch_config( channel_selection, refc );
+	raw_t	data_COM	= read<raw_t>( channel_selection );
 
-	const double	fullscale_voltage	= 5.00 / pga_gain[ pga_gain_index ];
-	const double	calibrated_gain		= pow( 2, 23 ) * (reference_source_voltage / fullscale_voltage) / (double)(data_REF - data_GND);
+	//	calculation
+	
+	const double	fullscale_voltage	= 5.00 / pga_gain[ gain_index ];
+	const double	calibrated_gain		= (double)(0x1 << 23) * (reference_source_voltage / fullscale_voltage) / (double)(data_REF - data_GND);
 
-#if 0
-	printf( "data_REF = %8ld\r\n", data_REF );
-	printf( "data_GND = %8ld\r\n", data_GND  );
-	printf( "gain adjustment = %8lf (%lfdB)\r\n", calibrated_gain, 20 * log10( calibrated_gain ) );
+#if 1
+	printf( "data_REF = %8ld (%lfV)\r\n",  data_REF, raw2v(  data_REF, channel_selection ) );
+	printf( "data_GND = %8ld (%lfmV)\r\n", data_GND, raw2mv( data_GND, channel_selection ) );
+	printf( "data_COM = %8ld (%lfmV)\r\n", data_COM, raw2mv( data_COM, channel_selection ) );
+	printf( "gain adjustment = %8lf (%lfdB)\r\n\r\n", calibrated_gain, 20 * log10( calibrated_gain ) );
 #endif
 	
-	const double	current_gain_coeff_value	= (double)reg( GAIN_COEFF0 + pga_gain_index );
-	const uint32_t	current_offset_coeff_value	= reg( OFFSET_COEFF0 + pga_gain_index );
+	if ( !( (0.95 < calibrated_gain) && (calibrated_gain < 1.05) ) )
+		return CalibrationError::GainError;
+	
+	const double	offset_mv	= raw2mv( data_COM, channel_selection );
+	
+	if ( !( (-10.0 < offset_mv) && (offset_mv < 10.0) ) )
+		return CalibrationError::OffsetError;
+	
+	//	setting registers: GAIN_COEFF[n] and OFFSET_COEFF[n]
+	
+	reg( GAIN_COEFF0   + gain_index, (uint32_t)(default_gain_coeff_value * calibrated_gain) );
+	reg( OFFSET_COEFF0 + gain_index, default_offset_coeff_value + data_COM );
 
-	reg( GAIN_COEFF0   + pga_gain_index, (uint32_t)(current_gain_coeff_value * calibrated_gain) );
-	reg( OFFSET_COEFF0 + pga_gain_index, current_offset_coeff_value + data_GND );
-
+	//	if the channel was in-use, revert the setting
+	
 	if ( channel_in_use )
 		logical_ch_config( channel_selection, tmp_ch_config );
 	else
 		logical_ch_disable( channel_selection );
+
+	return CalibrationError::NoError;
 }
 
 void NAFE13388_Base::blink_leds( void )
