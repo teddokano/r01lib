@@ -288,7 +288,7 @@ void NAFE13388_Base::gain_offset_coeff( const ref_points &ref )
 	reg( OFFSET_COEFF0 + ref.coeff_index, offset_coeff_new );
 }
 
-NAFE13388_Base::CalibrationError NAFE13388_Base::self_calibrate( GainPGA pga_gain_index, int channel_selection, int input_select, double reference_source_voltage, bool use_positive_side )
+int NAFE13388_Base::self_calibrate( int pga_gain_index, int channel_selection, int input_select, double reference_source_voltage, bool use_positive_side )
 {
 	constexpr	auto	low_gain_index	= 2;
 	auto				channel_in_use	= false;

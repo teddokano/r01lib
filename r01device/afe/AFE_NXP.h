@@ -243,7 +243,7 @@ public:
 
 	constexpr static double	pga_gain[]	= { 0.2, 0.4, 0.8, 1, 2, 4, 8, 16 };
 
-	enum class GainPGA : uint8_t {
+	enum GainPGA : uint8_t {
 		G_PGA_x_0_2	= 0,
 		G_PGA_x_0_4,
 		G_PGA_x_0_8,
@@ -506,7 +506,7 @@ public:
 	 */
 	void	gain_offset_coeff( const ref_points &ref );
 
-	enum class CalibrationError : int {
+	enum CalibrationError : int {
 		NoError		=  0,
 		GainError	= -1,
 		OffsetError	= -2,
@@ -523,7 +523,7 @@ public:
 	 * @param use_positive_side			Physical input channel selection AnP or AnN
 	 * @return CalibrationError 		Error code
 	 */
-	CalibrationError	self_calibrate( GainPGA pga_gain_index, int channel_selection = 15, int input_select = 0, double reference_source_voltage = 0, bool use_positive_side = true );
+	int		self_calibrate( int pga_gain_index, int channel_selection = 15, int input_select = 0, double reference_source_voltage = 0, bool use_positive_side = true );
 
 	/** Blinks LEDs on GPIO pins */
 	void blink_leds( void );
