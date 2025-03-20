@@ -25,8 +25,8 @@
  *  
  *  	afe.begin();
  *  
- *  	afe.logical_ch_config( 0, 0x1070, 0x0084, 0x2900, 0x0000 );
- *  	afe.logical_ch_config( 1, 0x2070, 0x0084, 0x2900, 0x0000 );
+ *  	afe.open_logical_channel( 0, 0x1070, 0x0084, 0x2900, 0x0000 );
+ *  	afe.open_logical_channel( 1, 0x2070, 0x0084, 0x2900, 0x0000 );
  *  
  *  	while ( true )
  *  	{		
@@ -46,6 +46,10 @@
 #include	"r01lib.h"
 #include	"SPI_for_AFE.h"
 #include	<cmath>
+#include	<vector>
+#include	<variant>
+
+#define		NON_TEMPLATE_VERSION_FOR_START_AND_READ
 
 class AFE_base : public SPI_for_AFE
 {
@@ -54,8 +58,6 @@ public:
 	/** ADC readout types */
 	using raw_t								= int32_t;
 	using microvolt_t						= double;
-	constexpr static float immidiate_read	= -1.0;
-	constexpr static float default_delay	= INFINITY;
 
 	/** Constructor to create a AFE_base instance */
 	AFE_base( SPI& spi, int nINT, int DRDY, int SYN, int nRESET );
@@ -77,6 +79,10 @@ public:
 	/** Issue RESET command */
 	virtual void reset( bool hardware_reset = false )	= 0;
 	
+	/** set callback function when DRDY comes */
+	using	callback_fp_t	= std::function<void(void)>;
+	virtual void set_DRDY_callback( callback_fp_t fnc );
+	
 	/** Configure logical channel
 	 *
 	 * @param ch logical channel number (0 ~ 15)
@@ -85,103 +91,199 @@ public:
 	 * @param cc2	16bit value to be set CH_CONFIG2 register (0x22)
 	 * @param cc3	16bit value to be set CH_CONFIG3 register (0x23)
 	 */
-	virtual void logical_ch_config( int ch, uint16_t cc0, uint16_t cc1, uint16_t cc2, uint16_t cc3 )	= 0;
+	virtual void open_logical_channel( int ch, uint16_t cc0, uint16_t cc1, uint16_t cc2, uint16_t cc3 )	= 0;
 
 	/** Configure logical channel
 	 *
 	 * @param ch logical channel number (0 ~ 15)
 	 * @param cc array for CH_CONFIG0, CH_CONFIG1, CH_CONFIG2 and CH_CONFIG3 values
 	 */
-	virtual void logical_ch_config( int ch, const uint16_t (&cc)[ 4 ] )	= 0;
+	virtual void open_logical_channel( int ch, const uint16_t (&cc)[ 4 ] )	= 0;
 
 	/** Logical channel disable
 	 *
 	 * @param ch logical channel number (0 ~ 15)
 	 */
-	virtual void logical_ch_disable( int ch )	= 0;
+	virtual void close_logical_channel( int ch )		= 0;
 
-	/** ADC channel read
-	 *
-	 * @param ch logical channel number (0 ~ 15)
+	/** All logical channel disable
 	 */
-	virtual int32_t	adc_read( int ch )	= 0;
-
-	/** Read ADC
-	 *	Performs ADC read. 
-	 *	If the delay is not given, just the ADC register is read.
-	 *	If the delay is given, measurement is started in this method and read-out after delay.
-	 *	The delay between start and read-out is specified in seconds. 
-	 *	
-	 *	This method need to be called with return type as 
-	 *	    double value = read<NAFE13388::microvolt_t>( 0, 0.01 );
-	 *	    int32_t value = read<NAFE13388::raw_t>( 0, 0.01 );
-	 *	
-	 * @param ch logical channel number (0 ~ 15)
-	 * @param delay ADC result read-out delay after measurement start if given
-	 * @return ADC readout value
-	 */
-	template<class T>
-	T read( int ch, float delay = default_delay );
+	virtual void close_logical_channel( void )			= 0;
 
 	/** Start ADC
 	 *
 	 * @param ch logical channel number (0 ~ 15)
 	 */
-	virtual void start( int ch )	= 0;
+	virtual void start( int ch )						= 0;
 
-	/** Number of enabled logical channels */
-	int		enabled_channels;
+	/** Start ADC on all logical channel
+	 */
+	virtual void start( void )							= 0;
+
+	/** Start continuous AD conversion
+	 */
+	virtual void start_continuous_conversion( void )	= 0;
+
+	/** DRDY event select
+	 *
+	 * @param set true for DRDY by sequencer is done
+	 */	
+	virtual void DRDY_by_sequencer_done( bool flag = true )	= 0;
+
+	/** Read ADC for single channel
+	 *
+	 * @param ch logical channel number (0 ~ 15)
+	 */
+	virtual raw_t	read( int ch )							= 0;
+
+	/** Read ADC for all channel
+	 *
+	 * @param data_ptr pointer to array to store ADC data
+	 */
+	virtual void	read( raw_t *data_ptr )					= 0;
+
+	/** Read ADC for all channel
+	 *
+	 * @param data_vctr vector object to store ADC data
+	 */
+	virtual void	read( std::vector<raw_t>& data_vctr )	= 0;
+
+	/** Start and read ADC for single  channel
+	 *
+	 * @param ch logical channel number (0 ~ 15)
+	 */
+	virtual raw_t	start_and_read( int ch );
 	
-	inline double raw2uv( raw_t value, int ch )
+#ifdef	NON_TEMPLATE_VERSION_FOR_START_AND_READ
+
+	/** Start and read ADC for all channel
+	 *
+	 * @param data_ptr pointer to array to store ADC data
+	 */
+	virtual void	start_and_read( raw_t *data_ptr );
+
+	/** Start and read ADC for all channel
+	 *
+	 * @param data_vctr vector object to store ADC data
+	 */
+	virtual void	start_and_read( std::vector<raw_t>& data_vctr );
+#else
+	template<typename T>
+	inline void start_and_read( T data )
+	{
+		double	wait_time	= cbf_DRDY ? -1.0 : total_delay * delay_accuracy;
+		
+		start();
+		wait_conversion_complete( wait_time );
+		
+		read( data );
+	};
+#endif
+	
+	/** Convert raw output to micro-volt
+	 *
+	 * @param ch logical channel number to select its gain coefficient
+	 * @param value ADC read value
+	 */
+	inline double raw2uv( int ch, raw_t value )
 	{
 		return value * coeff_uV[ ch ];
 	}
 	
-	inline double raw2mv( raw_t value, int ch )
+	/** Convert raw output to milli-volt
+	 *
+	 * @param ch logical channel number to select its gain coefficient
+	 * @param value ADC read value
+	 */
+	inline double raw2mv( int ch, raw_t value )
 	{
 		return value * coeff_uV[ ch ] * 1e-3;
 	}
 	
-	inline double raw2v( raw_t value, int ch )
+	/** Convert raw output to volt
+	 *
+	 * @param ch logical channel number to select its gain coefficient
+	 * @param value ADC read value
+	 */
+	inline double raw2v( int ch, raw_t value )
 	{
 		return value * coeff_uV[ ch ] * 1e-6;
 	}
 	
+	/** Coefficient to convert from ADC read value to micro-volt
+	 *
+	 * @param ch logical channel number
+	 */
+	inline double coeff_mV( int ch )
+	{
+		return coeff_uV[ ch ];
+	}
+	
+	/** Caliculated delay from logical channel setting (for single channel)
+	 *
+	 * @param ch logical channel number
+	 */
 	inline double drdy_delay( int ch )
 	{
 		return ch_delay[ ch ];
 	}
+
+	/** Caliculated delay from logical channel setting (for all channels)
+	 */
+	inline double drdy_delay( void )
+	{
+		return total_delay;
+	}
+
+	/** Number of enabled logical channels */
+	inline int enabled_logical_channels( void )
+	{
+		return enabled_channels;
+	}
 	
-private:
-	void	start_and_delay( int ch, float delay );
+	/** Switch to use DRDY to start ADC result reading
+	 *
+	 * @param use true (default) to use DRDY. if false, caliculated delay is used to start reading. 
+	 */
+	void	use_DRDY_trigger( bool use = true );
 
 protected:
-	int 	bit_count( uint32_t value );
+	int 			bit_count( uint32_t value );
 
+	/** Number of enabled logical channels */
+	int				enabled_channels;
+	
 	/** Coefficient to convert from ADC read value to micro-volt */
-	double	coeff_uV[ 16 ];
+	double			coeff_uV[ 16 ];
 
 	/** Channel delay */
-	double	ch_delay[ 16 ];
+	double			ch_delay[ 16 ];
+	double			total_delay;
 	static double	delay_accuracy;
+	
+	InterruptIn		pin_nINT;
+	InterruptIn		pin_DRDY;
+	DigitalOut		pin_SYN;
+	DigitalOut		pin_nRESET;
 
+	uint32_t		drdy_count;
+	volatile bool	drdy_flag;
 
-	DigitalIn	pin_nINT;
-	DigitalIn	pin_DRDY;
-	DigitalOut	pin_SYN;
-	DigitalOut	pin_nRESET;
+	constexpr static uint32_t	timeout_limit	= 100000000;
+
+	static callback_fp_t	cbf_DRDY;
+
+	virtual void			init( void );
+	void					default_drdy_cb( void );
+	
+	static void				DRDY_cb( void );
+	int						wait_conversion_complete( double delay = -1.0 );
+
 };
 
 class NAFE13388_Base : public AFE_base
 {
 public:
-	
-	/** Constructor to create a AFE_base instance */
-	NAFE13388_Base( SPI& spi, int nINT, int DRDY, int SYN, int nRESET );
-
-	/** Destractor */
-	virtual ~NAFE13388_Base();
-	
 	using	ch_setting_t	= uint16_t[ 4 ];
 
 	typedef struct	_reference_point	{
@@ -195,7 +297,13 @@ public:
 		reference_point	low;
 		int				cal_index;
 	} ref_points;
+	
+	/** Constructor to create a AFE_base instance */
+	NAFE13388_Base( SPI& spi, int nINT, int DRDY, int SYN, int nRESET );
 
+	/** Destractor */
+	virtual ~NAFE13388_Base();
+	
 	/** Set system-level config registers */
 	virtual void boot( void );
 
@@ -210,30 +318,29 @@ public:
 	 * @param cc2	16bit value to be set CH_CONFIG2 register (0x22)
 	 * @param cc3	16bit value to be set CH_CONFIG3 register (0x23)
 	 */
-	virtual void logical_ch_config( int ch, uint16_t cc0, uint16_t cc1, uint16_t cc2, uint16_t cc3 );
+	virtual void open_logical_channel( int ch, uint16_t cc0, uint16_t cc1, uint16_t cc2, uint16_t cc3 );
 
 	/** Configure logical channel
 	 *
 	 * @param ch logical channel number (0 ~ 15)
 	 * @param cc array for CH_CONFIG0, CH_CONFIG1, CH_CONFIG2 and CH_CONFIG3 values
 	 */
-	virtual void logical_ch_config( int ch, const uint16_t (&cc)[ 4 ] );
+	virtual void open_logical_channel( int ch, const uint16_t (&cc)[ 4 ] );
 
 private:	
 	double 	calc_delay( int ch );
+	void 	channel_info_update( uint16_t value );
 
 public:
 	/** Logical channel disable
 	 *
 	 * @param ch logical channel number (0 ~ 15)
 	 */
-	virtual void logical_ch_disable( int ch );
+	virtual void close_logical_channel( int ch );
 
-	/** ADC channel read
-	 *
-	 * @param ch logical channel number (0 ~ 15)
+	/** All logical channel disable
 	 */
-	virtual int32_t	adc_read( int ch );
+	virtual void close_logical_channel( void );
 
 	/** Start ADC
 	 *
@@ -241,6 +348,38 @@ public:
 	 */
 	virtual void start( int ch );
 
+	/** Start ADC on all logical channel
+	 */
+	virtual void start( void );
+
+	/** Start continuous AD conversion
+	 */
+	virtual void start_continuous_conversion();
+
+	/** DRDY event select
+	 *
+	 * @param set true for DRDY by sequencer is done
+	 */	
+	virtual void DRDY_by_sequencer_done( bool flag = true );
+	
+	/** Read ADC for single channel
+	 *
+	 * @param ch logical channel number (0 ~ 15)
+	 */
+	virtual raw_t	read( int ch );
+
+	/** Read ADC for all channel
+	 *
+	 * @param data_ptr pointer to array to store ADC data
+	 */
+	virtual void	read( raw_t *data );
+
+	/** Read ADC for all channel
+	 *
+	 * @param data_vctr vector object to store ADC data
+	 */
+	virtual void	read( std::vector<raw_t>& data_vctr );
+	
 	constexpr static double	pga_gain[]	= { 0.2, 0.4, 0.8, 1, 2, 4, 8, 16 };
 
 	enum GainPGA : uint8_t {
@@ -418,6 +557,9 @@ public:
 		CMD_CALC_CRC_FAC	= 0x2008,
 	};
 
+	using	RegisterVariant	= std::variant<Register16, Register24>;
+	using	RegVct			= std::vector<RegisterVariant>;
+	
 	/** Command
 	 *	
 	 * @param com "Comand" type or uint16_t value
@@ -497,7 +639,6 @@ public:
 	 * @return die temperature in celsius
 	 */
 	float	temperature( void );
-	
 	
 	/** Gain and offset coefficient customization
 	 *
