@@ -10,7 +10,9 @@
 #include "r01lib.h"
 
 void	init_mcu( void );
-void	wait( float delayTime_sec );
+void	wait( double delayTime_sec );
+void	wait_ms( unsigned int milloseconds );
+void	wait_us( unsigned int microseconds );
 void 	panic( const char *s );
 
 

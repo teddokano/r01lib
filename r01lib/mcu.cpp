@@ -182,9 +182,19 @@ void init_mcu( void )
 	UTICK_Init( UTICK0 );
 }
 
-void wait( float delayTime_sec )
+void wait( double delayTime_sec )
 {
 	SDK_DelayAtLeastUs( (uint32_t)(delayTime_sec * 1000000.0), CLOCK_GetCoreSysClkFreq() );
+}
+
+void wait_ms( unsigned int milloseconds )
+{
+	wait( (double)milloseconds * 1e-3 );
+}
+
+void wait_us( unsigned int microseconds )
+{
+	wait( (double)microseconds * 1e-6 );
 }
 
 void panic( const char *s )
