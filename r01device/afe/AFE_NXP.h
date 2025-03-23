@@ -20,20 +20,22 @@
  *  {
  *  	printf( "***** Hello, NAFE13388 UIM board! *****\r\n" );
  *  
- *  	spi.frequency( 1000 * 1000 );
+ *  	spi.frequency( 1'000'000 );
  *  	spi.mode( 1 );
  *  
  *  	afe.begin();
  *  
- *  	afe.open_logical_channel( 0, 0x1070, 0x0084, 0x2900, 0x0000 );
- *  	afe.open_logical_channel( 1, 0x2070, 0x0084, 0x2900, 0x0000 );
+ *  	afe.open_logical_channel( 0, 0x1710, 0x00A4, 0xBC00, 0x0000 );
+ *  	afe.open_logical_channel( 1, 0x2710, 0x00A4, 0xBC00, 0x0000 );
  *  
  *  	while ( true )
- *  	{		
- *  		printf( "microvolt: %11.2f, %11.2f\r\n", afe.read<NAFE13388::microvolt_t>( 0, 0.01 ), afe.read<NAFE13388::microvolt_t>( 1, 0.01 ) );
- *  		printf( "raw:       %ld, %ld\r\n",       afe.read<NAFE13388::raw_t>( 0, 0.01 ),       afe.read<NAFE13388::raw_t>( 1, 0.01 )       );
- *  
- *  		wait( 0.05 );
+ *  	{
+ *  		for ( auto ch = 0; ch < 2; ch++ )
+ *  		{
+ *  			int32_t	data	= afe.start_and_read( ch );
+ *  			printf( "channel %2d : %8ld (%lfuV),", ch, data, afe.raw2uv( ch, data ) );
+ *  		}
+ *  		printf( "\r\n" );
  *  	}
  *  }
  *  @endcode
@@ -60,7 +62,7 @@ public:
 	using microvolt_t						= double;
 
 	/** Constructor to create a AFE_base instance */
-	AFE_base( SPI& spi, int nINT, int DRDY, int SYN, int nRESET );
+	AFE_base( SPI& spi, bool spi_addr, int nINT, int DRDY, int SYN, int nRESET );
 
 	/** Destractor */
 	virtual ~AFE_base();
@@ -248,6 +250,11 @@ public:
 	void	use_DRDY_trigger( bool use = true );
 
 protected:
+	InterruptIn		pin_nINT;
+	InterruptIn		pin_DRDY;
+	DigitalOut		pin_SYN;
+	DigitalOut		pin_nRESET;
+
 	int 			bit_count( uint32_t value );
 
 	/** Number of enabled logical channels */
@@ -261,10 +268,6 @@ protected:
 	double			total_delay;
 	static double	delay_accuracy;
 	
-	InterruptIn		pin_nINT;
-	InterruptIn		pin_DRDY;
-	DigitalOut		pin_SYN;
-	DigitalOut		pin_nRESET;
 
 	uint32_t		drdy_count;
 	volatile bool	drdy_flag;
@@ -299,7 +302,7 @@ public:
 	} ref_points;
 	
 	/** Constructor to create a AFE_base instance */
-	NAFE13388_Base( SPI& spi, int nINT, int DRDY, int SYN, int nRESET );
+	NAFE13388_Base( SPI& spi, bool spi_addr, int nINT, int DRDY, int SYN, int nRESET );
 
 	/** Destractor */
 	virtual ~NAFE13388_Base();
@@ -674,7 +677,7 @@ class NAFE13388 : public NAFE13388_Base
 {
 public:	
 	/** Constructor to create a NAFE13388 instance */
-	NAFE13388( SPI& spi, int nINT = D2, int DRDY = D3, int SYN = D5, int nRESET = D6 );
+	NAFE13388( SPI& spi, bool spi_addr = 0, int nINT = D2, int DRDY = D3, int SYN = D5, int nRESET = D6 );
 
 	/** Destractor */
 	virtual ~NAFE13388();
@@ -684,7 +687,7 @@ class NAFE13388_UIM : public NAFE13388_Base
 {
 public:	
 	/** Constructor to create a NAFE13388 instance */
-	NAFE13388_UIM( SPI& spi, int nINT = D3, int DRDY = D4, int SYN = D6, int nRESET = D7 );
+	NAFE13388_UIM( SPI& spi, bool spi_addr = 0, int nINT = D3, int DRDY = D4, int SYN = D6, int nRESET = D7 );
 
 	/** Destractor */
 	virtual ~NAFE13388_UIM();

@@ -18,8 +18,8 @@ double	AFE_base::delay_accuracy	= 1.1;
 
 /* AFE_base class ******************************************/
 
-AFE_base::AFE_base( SPI& spi, int nINT, int DRDY, int SYN, int nRESET ) : 
-	SPI_for_AFE( spi ), enabled_channels( 0 ), pin_nINT( nINT ), pin_DRDY( DRDY ), pin_SYN( SYN ), pin_nRESET( nRESET, 1 )
+AFE_base::AFE_base( SPI& spi, bool spi_addr, int nINT, int DRDY, int SYN, int nRESET ) : 
+	SPI_for_AFE( spi, spi_addr ), pin_nINT( nINT ), pin_DRDY( DRDY ), pin_SYN( SYN ), pin_nRESET( nRESET, 1 ), enabled_channels( 0 )
 {
 }
 
@@ -143,8 +143,8 @@ AFE_base::callback_fp_t	AFE_base::cbf_DRDY		= nullptr;
 
 /* NAFE13388_Base class ******************************************/
 
-NAFE13388_Base::NAFE13388_Base( SPI& spi, int nINT, int DRDY, int SYN, int nRESET ) 
-	: AFE_base( spi, nINT, DRDY, SYN, nRESET )
+NAFE13388_Base::NAFE13388_Base( SPI& spi, bool spi_addr, int nINT, int DRDY, int SYN, int nRESET ) 
+	: AFE_base( spi, spi_addr, nINT, DRDY, SYN, nRESET )
 {
 }
 
@@ -518,8 +518,8 @@ void NAFE13388_Base::blink_leds( void )
 
 /* NAFE13388 class ******************************************/
 
-NAFE13388::NAFE13388( SPI& spi, int nINT, int DRDY, int SYN, int nRESET ) 
-	: NAFE13388_Base( spi, nINT, DRDY, SYN, nRESET )
+NAFE13388::NAFE13388( SPI& spi, bool spi_addr, int nINT, int DRDY, int SYN, int nRESET ) 
+	: NAFE13388_Base( spi, spi_addr, nINT, DRDY, SYN, nRESET )
 {
 }
 
@@ -529,8 +529,8 @@ NAFE13388::~NAFE13388()
 
 /* NAFE13388_UIM class ******************************************/
 
-NAFE13388_UIM::NAFE13388_UIM( SPI& spi, int nINT, int DRDY, int SYN, int nRESET ) 
-	: NAFE13388_Base( spi, nINT, DRDY, SYN, nRESET )
+NAFE13388_UIM::NAFE13388_UIM( SPI& spi, bool spi_addr, int nINT, int DRDY, int SYN, int nRESET ) 
+	: NAFE13388_Base( spi, spi_addr, nINT, DRDY, SYN, nRESET )
 {
 }
 

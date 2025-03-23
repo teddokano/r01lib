@@ -9,7 +9,7 @@
 #include "AFE_NXP.h"
 #include <bit>
 
-SPI_for_AFE::SPI_for_AFE( SPI& spi ) : _spi( spi )
+SPI_for_AFE::SPI_for_AFE( SPI& spi, bool spi_addr ) : _spi( spi ), dev_ad( spi_addr )
 {
 }
 
@@ -22,6 +22,8 @@ void SPI_for_AFE::txrx( uint8_t *data, int size )
 	static constexpr int	READ_BUFFER_SIZE	= command_length + 16 * 3; //	(2[command] + 16[logical_channels] * 3[bytes])
 
 	uint8_t	r_data[ READ_BUFFER_SIZE ];
+	
+	data[ 0 ]	|= dev_ad ? 0x80 : 0x00;
 	
 	_spi.write( data, r_data, size );
 	memcpy( data, r_data, size );
@@ -43,11 +45,6 @@ void SPI_for_AFE::write_r16( uint16_t reg, uint16_t val )
 	txrx( v, sizeof( v ) );
 }
 
-#pragma pack( 1 )
-
-#define	byteswap16( x )		(((x) >> 8) & 0xFF) | (((x) & 0xFF) << 8)
-#define	byteswap24( x )		(((x) >> 16) & 0x0000FF) | ((x) & 0x00FF00) | (((x) << 16) & 0xFF0000)
-
 uint16_t SPI_for_AFE::read_r16( uint16_t reg )
 {
 	reg	<<= 1;
@@ -57,8 +54,9 @@ uint16_t SPI_for_AFE::read_r16( uint16_t reg )
 	txrx( v, sizeof( v ) );
 	
 //	printf( "0x%04X\r\n", byteswap16( *((uint16_t*)(v + command_length)) ) );
-	
-	return byteswap16( *((uint16_t*)(v + command_length)) );
+//	return byteswap16( *((uint16_t*)(v + command_length)) );
+
+	return get_data16( v + command_length );
 }
 
 void SPI_for_AFE::write_r24( uint16_t reg, uint32_t val )

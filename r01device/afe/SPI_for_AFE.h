@@ -15,7 +15,7 @@
 class SPI_for_AFE
 {
 public:
-	SPI_for_AFE( SPI& spi );
+	SPI_for_AFE( SPI& spi, bool dev_ad );
 	virtual ~SPI_for_AFE();
 	
 	/** Send data
@@ -80,7 +80,8 @@ private:
 	}
 
 	static constexpr int	command_length	= 2;
-	SPI& _spi;
+	SPI& 		_spi;
+	const bool	dev_ad;
 };
 
 #endif //	ARDUINO_SPI_FOR_AFE_H
