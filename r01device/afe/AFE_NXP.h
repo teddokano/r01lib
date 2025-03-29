@@ -56,13 +56,12 @@
 class AFE_base : public SPI_for_AFE
 {
 public:
-
 	/** ADC readout types */
 	using raw_t								= int32_t;
 	using microvolt_t						= double;
 
 	/** Constructor to create a AFE_base instance */
-	AFE_base( SPI& spi, bool spi_addr, int nINT, int DRDY, int SYN, int nRESET );
+	AFE_base( SPI& spi, bool spi_addr, bool highspeed_variant, int nINT, int DRDY, int SYN, int nRESET );
 
 	/** Destractor */
 	virtual ~AFE_base();
@@ -250,6 +249,7 @@ public:
 	void	use_DRDY_trigger( bool use = true );
 
 protected:
+	bool			highspeed_variant;
 	InterruptIn		pin_nINT;
 	InterruptIn		pin_DRDY;
 	DigitalOut		pin_SYN;
@@ -302,7 +302,7 @@ public:
 	} ref_points;
 	
 	/** Constructor to create a AFE_base instance */
-	NAFE13388_Base( SPI& spi, bool spi_addr, int nINT, int DRDY, int SYN, int nRESET );
+	NAFE13388_Base( SPI& spi, bool spi_addr, bool highspeed_variant, int nINT, int DRDY, int SYN, int nRESET );
 
 	/** Destractor */
 	virtual ~NAFE13388_Base();
@@ -677,7 +677,7 @@ class NAFE13388 : public NAFE13388_Base
 {
 public:	
 	/** Constructor to create a NAFE13388 instance */
-	NAFE13388( SPI& spi, bool spi_addr = 0, int nINT = D2, int DRDY = D3, int SYN = D5, int nRESET = D6 );
+	NAFE13388( SPI& spi, bool spi_addr = 0, bool highspeed_variant = false, int nINT = D2, int DRDY = D3, int SYN = D5, int nRESET = D6 );
 
 	/** Destractor */
 	virtual ~NAFE13388();
@@ -687,7 +687,7 @@ class NAFE13388_UIM : public NAFE13388_Base
 {
 public:	
 	/** Constructor to create a NAFE13388 instance */
-	NAFE13388_UIM( SPI& spi, bool spi_addr = 0, int nINT = D3, int DRDY = D4, int SYN = D6, int nRESET = D7 );
+	NAFE13388_UIM( SPI& spi, bool spi_addr = 0, bool highspeed_variant = false, int nINT = D3, int DRDY = D4, int SYN = D6, int nRESET = D7 );
 
 	/** Destractor */
 	virtual ~NAFE13388_UIM();
