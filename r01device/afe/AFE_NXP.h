@@ -50,6 +50,7 @@
 #include	<cmath>
 #include	<vector>
 #include	<variant>
+#include	<algorithm>
 
 #define		NON_TEMPLATE_VERSION_FOR_START_AND_READ
 
