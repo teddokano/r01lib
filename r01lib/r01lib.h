@@ -11,16 +11,14 @@ extern "C" {
 #include	"fsl_debug_console.h"
 }
 
-#define		MCUXPRESSO_V25_06_OR_LATER 
+#include	<iostream>
+#include	<iomanip>
 
 #if (defined(SDK_DEBUGCONSOLE) && (SDK_DEBUGCONSOLE == DEBUGCONSOLE_REDIRECT_TO_SDK))
-#ifdef	MCUXPRESSO_V25_06_OR_LATER
-#else	//	MCUXPRESSO_V25_06_OR_LATER
 #define printf	DbgConsole_Printf
 #define scanf	DbgConsole_Scanf
 #define putchar	DbgConsole_Putchar
 #define getchar	DbgConsole_Getchar
-#endif	//	MCUXPRESSO_V25_06_OR_LATER
 #else
 #define		SEMIHOST_OPERATION
 #endif
@@ -33,8 +31,5 @@ extern "C" {
 #include	"InterruptIn.h"
 #include	"BusInOut.h"
 #include	"mcu.h"
-
-#include	<iostream>
-#include	<iomanip>
 
 #endif // R01LIB_R01LIB_H
