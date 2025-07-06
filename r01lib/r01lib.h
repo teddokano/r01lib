@@ -34,10 +34,7 @@ extern "C" {
 #include	"BusInOut.h"
 #include	"mcu.h"
 
-#ifdef	MCUXPRESSO_V25_06_OR_LATER
-#else	//	MCUXPRESSO_V25_06_OR_LATER
 #include	<iostream>
 #include	<iomanip>
-#endif	//	MCUXPRESSO_V25_06_OR_LATER
 
 #endif // R01LIB_R01LIB_H
