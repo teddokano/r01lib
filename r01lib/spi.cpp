@@ -94,7 +94,7 @@ SPI::SPI( int mosi, int miso, int sclk, int cs ) : Obj( true )
 #else
 	unit_base			= EXAMPLE_LPSPI_MASTER_BASEADDR;
 	master_clk_freq		= LPSPI_MASTER_CLK_FREQ;
-	master_pcs_for_int	= EXAMPLE_LPSPI_MASTER_PCS_FOR_INIT;
+	master_pcs_for_init	= EXAMPLE_LPSPI_MASTER_PCS_FOR_INIT;
 	master_pcs_4_xfer	= EXAMPLE_LPSPI_MASTER_PCS_FOR_TRANSFER;
 #endif
 	
