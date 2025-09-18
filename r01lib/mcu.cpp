@@ -136,6 +136,8 @@ void init_mcu( void )
 	/* SPI */
 	CLOCK_SetClockDiv( kCLOCK_DivLPSPI0, 1u );
 	CLOCK_AttachClk( kFRO12M_to_LPSPI0 );
+	CLOCK_SetClockDiv( kCLOCK_DivLPSPI1, 1u );
+	CLOCK_AttachClk( kFRO12M_to_LPSPI1 );
 
 	CLOCK_EnableClock( kCLOCK_GateGPIO0 );
 	CLOCK_EnableClock( kCLOCK_GateGPIO1 );

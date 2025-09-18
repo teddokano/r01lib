@@ -473,6 +473,10 @@ enum {
 	#define	A5		P1_13
 	#define	SW2		P1_7
 	#define	SW3		P0_6
+	#define	ARD_CS		P2_6
+	#define	ARD_MOSI	P2_13
+	#define	ARD_MISO	D12
+	#define	ARD_SCK		D13
 	#define	MB_AN	P3_30
 	#define	MB_RST	P3_29
 	#define	MB_CS	P1_3

@@ -70,6 +70,9 @@ public:
 
 private:
 	lpspi_master_config_t	masterConfig;
+	LPSPI_Type				*unit_base;
+	uint32_t				master_clk_freq;
+	uint32_t				master_pcs_4_xfer;
 };
 
 #endif // R01LIB_SPI_H
