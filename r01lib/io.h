@@ -191,6 +191,10 @@ enum {
 	#define	SPI_MOSI	D11
 	#define	SPI_MISO	D12
 	#define	SPI_SCLK	D13
+	#define	ARD_CS		SPI_CS
+	#define	ARD_MOSI	SPI_MOSI
+	#define	ARD_MISO	SPI_MISO
+	#define	ARD_SCK		SPI_SCLK
 
 	#define	PIN_LED_OFF	true
 	#define	PIN_LED_ON	false
@@ -357,6 +361,10 @@ enum {
 	#define	SPI_MOSI	D11
 	#define	SPI_MISO	D12
 	#define	SPI_SCLK	D13
+	#define	ARD_CS		SPI_CS
+	#define	ARD_MOSI	SPI_MOSI
+	#define	ARD_MISO	SPI_MISO
+	#define	ARD_SCK		SPI_SCLK
 
 	#define	PIN_LED_OFF	true
 	#define	PIN_LED_ON	false
@@ -473,10 +481,6 @@ enum {
 	#define	A5		P1_13
 	#define	SW2		P1_7
 	#define	SW3		P0_6
-	#define	ARD_CS		P2_6
-	#define	ARD_MOSI	P2_13
-	#define	ARD_MISO	D12
-	#define	ARD_SCK		D13
 	#define	MB_AN	P3_30
 	#define	MB_RST	P3_29
 	#define	MB_CS	P1_3
@@ -501,6 +505,10 @@ enum {
 	#define	SPI_MOSI	MB_MOSI
 	#define	SPI_MISO	MB_MISO
 	#define	SPI_SCLK	MB_SCK
+	#define	ARD_CS		P2_6
+	#define	ARD_MOSI	P2_13
+	#define	ARD_MISO	D12
+	#define	ARD_SCK		D13
 
 	#define	PIN_LED_OFF	true
 	#define	PIN_LED_ON	false
@@ -612,6 +620,10 @@ enum {
 	#define	SPI_MOSI	D11
 	#define	SPI_MISO	D12
 	#define	SPI_SCLK	D13
+	#define	ARD_CS		SPI_CS
+	#define	ARD_MOSI	SPI_MOSI
+	#define	ARD_MISO	SPI_MISO
+	#define	ARD_SCK		SPI_SCLK
 
 	#define	PIN_LED_OFF	true
 	#define	PIN_LED_ON	false
