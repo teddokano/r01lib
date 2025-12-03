@@ -189,17 +189,23 @@ void NAFE13388_Base::reset( bool hardware_reset )
 void NAFE13388_Base::open_logical_channel( int ch, const uint16_t (&cc)[ 4 ] )
 {	
 	command( ch );
+
+	if ( cc[ 0 ] & 0x0010 )
+	{
+		coeff_uV[ ch ]		= ((10.0 / (double)(1L << 24)) / pga_gain[ (cc[ 0 ] >> 5) & 0x7 ]) * 1e6;
+		mux_setting[ ch ]	= HV_MUX;
+	}
+	else
+	{
+		coeff_uV[ ch ]		= ((10.0 / (double)(1L << 24)) / 2.5) * 1e6;
+		mux_setting[ ch ]	= (cc[ 0 ] >> 1) & 0x7;
+	}
 	
 	for ( auto i = 0; i < 4; i++ )
 		reg( CH_CONFIG0 + i, cc[ i ] );
 	
 	const uint16_t	setbit	= 0x1 << ch;
 	const uint16_t	bits	= bit_op( CH_CONFIG4, ~setbit, setbit );
-	
-	if ( cc[ 0 ] & 0x0010 )
-		coeff_uV[ ch ]	= ((10.0 / (double)(1L << 24)) / pga_gain[ (cc[ 0 ] >> 5) & 0x7 ]) * 1e6;
-	else
-		coeff_uV[ ch ]	= (4.0 / (double)(1L << 24)) * 1e6;
 	
 	ch_delay[ ch ]		= calc_delay( ch );
 	channel_info_update( bits );
