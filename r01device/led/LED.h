@@ -24,7 +24,7 @@ class LED {
 public:
   LED( LEDDriver& leddp, int ch );
   float operator=(float v);
-private:
+protected:
   LEDDriver&	devp;
   int			channel;
 };
