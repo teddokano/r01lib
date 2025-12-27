@@ -15,7 +15,9 @@
 #define R01LIB_INTERRUPTIN_H
 
 extern "C" {
+#ifndef	CPU_MCXC444VLH
 #include	"fsl_utick.h"
+#endif
 }
 
 #include	"io.h"
@@ -49,7 +51,11 @@ public:
 	virtual void	fall( func_ptr callback );
 
 private:
+#if (defined(FSL_FEATURE_PORT_HAS_NO_INTERRUPT) && FSL_FEATURE_PORT_HAS_NO_INTERRUPT)
 	void	regist( func_ptr callback, gpio_interrupt_config_t type );
+#else
+	void	regist( func_ptr callback, port_interrupt_t type );
+#endif
 };
 
 #endif // R01LIB_INTERRUPTIN_H

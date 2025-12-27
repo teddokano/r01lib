@@ -198,6 +198,7 @@ public:
 	 */		
 	void				address_overwrite( uint8_t address );
 
+#ifdef I3C_SUPPORTED
 	/** Set Commion Command Code
 	 *
 	 * @param ccc Commion Command Code
@@ -213,7 +214,8 @@ public:
 	 * @return pointer to data array
 	 */		
 	virtual uint8_t* ccc_get( CCC ccc, uint8_t *dp, uint8_t length );
-
+#else	//	I3C_SUPPORTED
+#endif	//	I3C_SUPPORTED
 
 protected:
 	I2C&		i2c;

@@ -8,13 +8,18 @@
 #define R01LIB_SPI_H
 
 extern "C" {
+#ifdef	CPU_MCXC444VLH
+#include "fsl_spi.h"
+#else
 #include "fsl_lpspi.h"
+#endif
 }
 
 #include	"spi.h"
 #include	"io.h"
 
 #define	SPI_FREQ		1000000UL
+
 
 /** SPI class
  *	
@@ -68,9 +73,17 @@ public:
 	/** variable for reporting last state */
 	status_t				last_status;
 
+protected:
+	DigitalOut				chip_select;
+
 private:
+#ifdef	CPU_MCXC444VLH
+	spi_master_config_t		masterConfig;
+	SPI_Type				*unit_base;
+#else
 	lpspi_master_config_t	masterConfig;
 	LPSPI_Type				*unit_base;
+#endif
 	uint32_t				master_clk_freq;
 	uint32_t				master_pcs_4_xfer;
 };

@@ -32,4 +32,9 @@ extern "C" {
 #include	"BusInOut.h"
 #include	"mcu.h"
 
+#ifdef	CPU_MCXC444VLH
+#else
+#define		I3C_SUPPORTED
+#endif
+
 #endif // R01LIB_R01LIB_H
