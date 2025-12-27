@@ -23,6 +23,11 @@ extern "C" {
 #define		SEMIHOST_OPERATION
 #endif
 
+#ifdef	CPU_MCXC444VLH
+#else
+#define		I3C_SUPPORTED
+#endif
+
 #include	"i3c.h"
 #include	"i2c.h"
 #include	"spi.h"

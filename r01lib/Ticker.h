@@ -7,6 +7,8 @@
 #ifndef R01LIB_TICKER_H
 #define R01LIB_TICKER_H
 
+#ifndef	CPU_MCXC444VLH
+
 #include <functional>
 
 extern "C" {
@@ -48,5 +50,7 @@ public:
 private:
 	UTICK_Type	*utick_type;
 };
+
+#endif // !CPU_MCXC444VLH
 
 #endif // R01LIB_TICKER_H

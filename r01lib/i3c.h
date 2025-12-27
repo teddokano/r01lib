@@ -14,6 +14,10 @@
 #ifndef R01LIB_I3C_H
 #define R01LIB_I3C_H
 
+#include "r01lib.h"
+
+#ifdef I3C_SUPPORTED
+
 #include	"i2c.h"
 #include	"fsl_i3c.h"
 
@@ -216,5 +220,7 @@ private:
 	i3c_master_config_t							masterConfig;
 	bool										first_broadcast;
 };
+#else	// I3C_SUPPORTED
+#endif	// I3C_SUPPORTED
 
-#endif // R01LIB_I3C_H
+#endif	// R01LIB_I3C_H

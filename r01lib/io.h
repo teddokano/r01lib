@@ -7,11 +7,13 @@
 #ifndef R01LIB_IO_H
 #define R01LIB_IO_H
 
+extern "C" {
 #include	"fsl_port.h"
 #include	"pin_mux.h"
 #include	"clock_config.h"
 #include	"board.h"
 #include	"obj.h"
+}
 
 #define	PIN_OUTPUT			kGPIO_DigitalOutput
 #define	PIN_INPUT			kGPIO_DigitalInput
@@ -629,8 +631,117 @@ enum {
 	#define	PIN_LED_ON	false
 
 
+#elif	CPU_MCXC444VLH
+enum {
+	DISABLED_PIN,
+	PTA0,
+	PTA1,
+	PTA2,
+	PTA3,
+	PTA4,
+	PTA5,
+	PTA12,
+	PTA13,
+	PTA18,
+	PTA19,
+	PTA20,
+	PTB0,
+	PTB1,
+	PTB2,
+	PTB3,
+	PTB16,
+	PTB17,
+	PTB18,
+	PTB19,
+	PTC0,
+	PTC1,
+	PTC2,
+	PTC3,
+	PTC4,
+	PTC5,
+	PTC6,
+	PTC7,
+	PTC20,
+	PTC21,
+	PTC22,
+	PTC23,
+	PTD0,
+	PTD1,
+	PTD2,
+	PTD3,
+	PTD4,
+	PTD5,
+	PTD6,
+	PTD7,
+	PTE0,
+	PTE1,
+	PTE20,
+	PTE21,
+	PTE22,
+	PTE23,
+	PTE24,
+	PTE25,
+	PTE29,
+	PTE30,
+	PTE31,
+};
+
+	#define	D0		PTA1
+	#define	D1		PTA2
+	#define	D2		PTD3
+	#define	D3		PTA12
+	#define	D4		PTA4
+	#define	D5		PTA5
+	#define	D6		PTE29
+	#define	D7		PTE30
+	#define	D8		PTA13
+	#define	D9		PTD2
+	#define	D10		PTD4
+	#define	D11		PTD6
+	#define	D12		PTD7
+	#define	D13		PTD5
+	#define	D18		PTE0
+	#define	D19		PTE1
+	#define	A0		PTB0
+	#define	A1		PTB1
+	#define	A2		PTB2
+	#define	A3		PTB3
+	#define	A4		PTC2
+	#define	A5		PTC1
+	#define	SW2		PTC3
+	#define	SW3		D4
+	#define	MB_AN	A0
+	#define	MB_RST	D7
+	#define	MB_CS	D10
+	#define	MB_SCK	D13
+	#define	MB_MISO	D12
+	#define	MB_MOSI	D11
+	#define	MB_PWM	D3
+	#define	MB_INT	D2
+	#define	MB_RX	D19
+	#define	MB_TX	D18
+	#define	MB_SCL	A5
+	#define	MB_SDA	A4
+	#define	RED		PTE31
+	#define	GREEN	D13
+	#define	BLUE	D6
+
+	#define	I2C_SDA		D18
+	#define	I2C_SCL		D19
+	#define	SPI_CS		D10
+	#define	SPI_MOSI	D11
+	#define	SPI_MISO	D12
+	#define	SPI_SCLK	D13
+	#define	ARD_CS		SPI_CS
+	#define	ARD_MOSI	SPI_MOSI
+	#define	ARD_MISO	SPI_MISO
+	#define	ARD_SCK		SPI_SCLK
+
+	#define	PIN_LED_OFF	true
+	#define	PIN_LED_ON	false
+
 #else
-	#error Target CPU is not supported
+#error Target CPU is not supported
 #endif // CPU_MCXN947VDF
 
 
@@ -798,7 +909,9 @@ static inline void PORT_SetPinPullUpDown( PORT_Type *base, uint32_t pin, int ena
 
 static inline void PORT_SetPinOpenDrain( PORT_Type *base, uint32_t pin, int enable )
 {
+#ifndef	CPU_MCXC444VLH
 	base->PCR[pin] = (base->PCR[pin] & ~PORT_PCR_ODE_MASK) | PORT_PCR_ODE( enable );
+#endif
 }
 
 static inline uint32_t PORT_GetPinMode( PORT_Type *base, uint32_t pin )

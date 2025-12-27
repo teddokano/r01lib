@@ -6,16 +6,96 @@
 
 extern "C" {
 #include "fsl_device_registers.h"
-#include "fsl_debug_console.h"
-#include "fsl_lpspi.h"
 #include "pin_mux.h"
 #include "clock_config.h"
 #include "board.h"
+#include "fsl_debug_console.h"
+
+#ifdef	CPU_MCXC444VLH
+#include "fsl_spi.h"
+#else
+#include "fsl_lpspi.h"
+#endif
 }
 
 #include	"io.h"
 #include	"spi.h"
 #include	"mcu.h"
+
+#ifdef	CPU_MCXC444VLH
+
+#define EXAMPLE_SPI_MASTER              SPI1
+#define EXAMPLE_SPI_MASTER_SOURCE_CLOCK kCLOCK_BusClk
+#define EXAMPLE_SPI_MASTER_CLK_FREQ     CLOCK_GetFreq( kCLOCK_BusClk )
+
+SPI::SPI( int mosi, int miso, int sclk, int cs ) : Obj( true ), chip_select( cs )
+{
+	unit_base			= EXAMPLE_SPI_MASTER;
+	master_clk_freq		= EXAMPLE_SPI_MASTER_CLK_FREQ;
+
+	SPI_MasterGetDefaultConfig( &masterConfig );
+	SPI_MasterInit( unit_base, &masterConfig, master_clk_freq );
+
+	frequency( SPI_FREQ );
+	mode( 0 );
+
+	//	pin enable
+	
+//	DigitalInOut	_cs(   cs   );
+	DigitalInOut	_mosi( mosi );
+	DigitalInOut	_miso( miso );
+	DigitalInOut	_sclk( sclk );
+
+	constexpr uint8_t	mux_setting	= 2;
+
+	_mosi.pin_mux( mux_setting );
+	_sclk.pin_mux( mux_setting );
+	_miso.pin_mux( mux_setting );
+//	_cs.pin_mux(   mux_setting );
+
+	chip_select	= true;
+}
+
+SPI::~SPI()
+{
+	SPI_Deinit( unit_base );
+}
+
+void SPI::frequency( uint32_t frequency )
+{
+	masterConfig.baudRate_Bps = frequency / 2;	//	This may be a problem of SDK v25.12
+
+//	SPI_Deinit( unit_base );
+	SPI_MasterInit( unit_base, &masterConfig, master_clk_freq );
+}
+
+void SPI::mode( uint8_t mode )
+{
+	masterConfig.polarity	= (spi_clock_polarity_t)((mode >> 1) & 0x1);
+	masterConfig.phase		= (spi_clock_phase_t   )((mode >> 0) & 0x1);
+
+//	SPI_Deinit( unit_base );
+	SPI_MasterInit( unit_base, &masterConfig, master_clk_freq );
+}
+
+status_t SPI::write( uint8_t *wp, uint8_t *rp, int length )
+{
+	spi_transfer_t	masterXfer;
+	status_t		status;
+
+	masterXfer.txData		= wp;
+	masterXfer.rxData		= rp;
+	masterXfer.dataSize		= length;
+
+	chip_select	= false;
+	status	= SPI_MasterTransferBlocking( unit_base, &masterXfer );
+	chip_select	= true;
+
+	return status;
+}
+
+
+#else	//	CPU_MCXC444VLH
 
 #define TRANSFER_SIZE     64U     /*! Transfer dataSize */
 #define TRANSFER_BAUDRATE 500000U /*! Transfer baudrate - 500k */
@@ -164,3 +244,5 @@ status_t SPI::write( uint8_t *wp, uint8_t *rp, int length )
 
 	return LPSPI_MasterTransferBlocking( unit_base, &masterXfer );
 }
+
+#endif // CPU_MCXC444VLH
