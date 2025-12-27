@@ -12,7 +12,7 @@
 #include <functional>
 
 extern "C" {
-//	C444	#include	"fsl_utick.h"
+#include	"fsl_utick.h"
 }
 
 #include	<functional>

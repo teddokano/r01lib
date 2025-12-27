@@ -95,7 +95,7 @@ status_t SPI::write( uint8_t *wp, uint8_t *rp, int length )
 }
 
 
-#else
+#else	//	CPU_MCXC444VLH
 
 #define TRANSFER_SIZE     64U     /*! Transfer dataSize */
 #define TRANSFER_BAUDRATE 500000U /*! Transfer baudrate - 500k */

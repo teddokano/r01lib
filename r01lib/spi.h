@@ -18,7 +18,7 @@ extern "C" {
 #include	"spi.h"
 #include	"io.h"
 
-#define	SPI_FREQ		1000000UL
+#define	SPI_FREQ		1'000'000UL
 
 
 /** SPI class
@@ -73,17 +73,17 @@ public:
 	/** variable for reporting last state */
 	status_t				last_status;
 
+#ifdef	CPU_MCXC444VLH
 protected:
 	DigitalOut				chip_select;
-
 private:
-#ifdef	CPU_MCXC444VLH
 	spi_master_config_t		masterConfig;
 	SPI_Type				*unit_base;
 #else
 	lpspi_master_config_t	masterConfig;
 	LPSPI_Type				*unit_base;
 #endif
+	
 	uint32_t				master_clk_freq;
 	uint32_t				master_pcs_4_xfer;
 };
