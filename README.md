@@ -10,6 +10,7 @@ The code is intended to build in MCUXpresso library projects.
 Those libraries projects are..
 - _r01lib_frdm_mcxa153
 - _r01lib_frdm_mcxa156
+- _r01lib_frdm_mcxc444
 - _r01lib_frdm_mcxn236
 - _r01lib_frdm_mcxn947
 
