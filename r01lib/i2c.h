@@ -234,6 +234,7 @@ private:
 #if	CPU_MCXC444VLH
 	i2c_master_config_t		masterConfig;
 	I2C_Type				*unit_base;
+	bool					repeated_start_required_flag;
 #else
 	lpi2c_master_config_t	masterConfig;
 	LPI2C_Type				*unit_base;

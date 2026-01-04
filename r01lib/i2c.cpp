@@ -136,7 +136,7 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 		panic( "FRDM-MCXA153 supports I3C_SDA/I3C_SCL, I2C_SDA(D18)/I2C_SCL(D19), MB_SDA/MB_SCL or MB_MOSI/MB_SCK pins for I2C" );
 
 	unit_base	= I2C1;
-	
+	repeated_start_required_flag	= false;
 #else
 	#error Not supported CPU
 #endif
@@ -221,6 +221,11 @@ status_t I2C::write_core( uint8_t address, const uint8_t *dp, int length, bool s
 	masterXfer.dataSize       = length;
 	masterXfer.flags          = kI2C_TransferDefaultFlag;
 
+	masterXfer.flags	|= !stop						? kI2C_TransferNoStopFlag			: 0x0;
+	masterXfer.flags	|= repeated_start_required_flag	? kI2C_TransferRepeatedStartFlag	: 0x0;
+
+	repeated_start_required_flag	= !stop;
+
 	return I2C_MasterTransferBlocking( unit_base, &masterXfer );
 }
 
@@ -237,6 +242,11 @@ status_t I2C::read_core( uint8_t address, uint8_t *dp, int length, bool stop )
 	masterXfer.data           = dp;
 	masterXfer.dataSize       = length;
 	masterXfer.flags          = kI2C_TransferDefaultFlag;
+
+	masterXfer.flags	|= !stop						? kI2C_TransferNoStopFlag			: 0x0;
+	masterXfer.flags	|= repeated_start_required_flag	? kI2C_TransferRepeatedStartFlag	: 0x0;
+
+	repeated_start_required_flag	= !stop;
 
 	return I2C_MasterTransferBlocking( unit_base, &masterXfer );
 }
