@@ -78,7 +78,7 @@ void irq_handler( int num )
 		{
 			GPIO_PortClearInterruptFlags( gpios[ i ], flags );
 
-			for ( int b = 0; b < 32; b++ )
+			for ( int b = 0; b < GPIO_BITS; b++ )
 				if ( cb_table[ i ][ b ] && flags & (1 << b) )
 					(cb_table[ i ][ b ])();			
 		}
