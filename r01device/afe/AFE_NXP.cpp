@@ -16,6 +16,72 @@ using enum	NAFE13388_UIM::Command;
 
 double	AFE_base::delay_accuracy	= 1.1;
 
+
+
+NAFE13388_Base::LogicalChannel::LogicalChannel( AFE_base& a, uint8_t ch, const uint16_t (&cc)[ 4 ] ) : afe( a ), ch_number( ch )
+{
+	update( cc );
+}
+
+NAFE13388_Base::LogicalChannel::LogicalChannel( AFE_base& a, uint8_t ch, uint16_t cc0, uint16_t cc1, uint16_t cc2, uint16_t cc3 ) : afe( a ), ch_number( ch )
+{
+	update( cc0, cc1, cc2, cc3 );
+}
+
+NAFE13388_Base::LogicalChannel::~LogicalChannel()
+{
+	disable();
+}
+
+void NAFE13388_Base::LogicalChannel::update( const uint16_t (&cc)[ 4 ] )
+{
+	afe.open_logical_channel( ch_number, cc );
+}
+
+void NAFE13388_Base::LogicalChannel::update( uint16_t cc0, uint16_t cc1, uint16_t cc2, uint16_t cc3 )
+{
+	const ch_setting_t	tmp_ch_config	= { cc0, cc1, cc2, cc3 };
+	afe.open_logical_channel( ch_number, tmp_ch_config );
+}
+
+void NAFE13388_Base::LogicalChannel::enable( void )
+{
+	afe.enable_logical_channel( ch_number );
+}
+
+void NAFE13388_Base::LogicalChannel::disable( void )
+{
+	afe.close_logical_channel( ch_number );
+}
+
+template<>
+NAFE13388_Base::raw_t	NAFE13388_Base::LogicalChannel::read( void )
+{
+	return afe.start_and_read( ch_number );
+}
+
+template<>
+NAFE13388_Base::microvolt_t NAFE13388_Base::LogicalChannel::read( void )
+{
+	raw_t	v	= read<NAFE13388_Base::raw_t>();
+	return afe.raw2uv( ch_number, v );
+}
+
+template<>
+NAFE13388_Base::LogicalChannel::operator NAFE13388_Base::raw_t( void )
+{
+	return read<NAFE13388_Base::raw_t>();
+}
+
+template<>
+NAFE13388_Base::LogicalChannel::operator NAFE13388_Base::microvolt_t( void )
+{
+	return read<NAFE13388_Base::microvolt_t>();
+}
+
+
+
+
 /* AFE_base class ******************************************/
 
 AFE_base::AFE_base( SPI& spi, bool spi_addr, bool hsv, int nINT, int DRDY, int SYN, int nRESET ) : 
@@ -204,11 +270,9 @@ void NAFE13388_Base::open_logical_channel( int ch, const uint16_t (&cc)[ 4 ] )
 	for ( auto i = 0; i < 4; i++ )
 		reg( CH_CONFIG0 + i, cc[ i ] );
 	
-	const uint16_t	setbit	= 0x1 << ch;
-	const uint16_t	bits	= bit_op( CH_CONFIG4, ~setbit, setbit );
+	enable_logical_channel( ch );
 	
 	ch_delay[ ch ]		= calc_delay( ch );
-	channel_info_update( bits );
 }
 
 void NAFE13388_Base::channel_info_update( uint16_t value )
@@ -216,15 +280,24 @@ void NAFE13388_Base::channel_info_update( uint16_t value )
 	constexpr auto	bit_length	= 16;
 	enabled_channels			= 0;
 	total_delay					= 0.00;
+	
+	memset( sequence_order, 0, 16 );
 		
 	for ( auto i = 0; i < bit_length; i++ )
 	{
 		if ( value & (0x1 << i) )
 		{
+			sequence_order[ enabled_channels ]	= i;
 			enabled_channels++;
 			total_delay	+= ch_delay[ i ];
 		}
 	}
+
+#if 0	
+	for ( auto i = 0; i < bit_length; i++ )
+		printf( " %x", sequence_order[ i ] );
+	printf( "\r\n" );
+#endif
 }
 
 double NAFE13388_Base::calc_delay( int ch )
@@ -284,6 +357,14 @@ void NAFE13388_Base::open_logical_channel( int ch, uint16_t cc0, uint16_t cc1, u
 	open_logical_channel( ch, tmp_ch_config );
 }
 
+void NAFE13388_Base::enable_logical_channel( int ch )
+{	
+	const uint16_t	setbit	= 0x1 << ch;
+	const uint16_t	bits	= bit_op( CH_CONFIG4, ~setbit, setbit );
+
+	channel_info_update( bits );
+}
+
 void NAFE13388_Base::close_logical_channel( int ch )
 {	
 	const uint16_t	clearingbit	= 0x1 << ch;
@@ -331,10 +412,30 @@ void NAFE13388_Base::read( raw_t *data )
 
 void NAFE13388_Base::read( std::vector<raw_t>& data_vctr )
 {
-	raw_t	data[ 16 ];
+	raw_t	raw_data[ 16 ];
 	
-	burst( (uint32_t *)data, enabled_channels );
-	std::copy( data, data + enabled_channels, data_vctr.begin() );
+	read( raw_data );
+	std::copy( raw_data, raw_data + enabled_channels, data_vctr.begin() );
+}
+
+void NAFE13388_Base::read( microvolt_t *data )
+{
+	raw_t	raw_data[ 16 ];
+	
+	read( raw_data );
+	
+	for ( auto i = 0; i < enabled_channels; i++ )
+		data[ i ]	= raw2uv( sequence_order[ i ], raw_data[ i ] );
+}
+
+void NAFE13388_Base::read( std::vector<microvolt_t>& data_vctr )
+{
+	raw_t	raw_data[ 16 ];
+	
+	read( raw_data );
+	
+	for ( auto i = 0; i < enabled_channels; i++ )
+		data_vctr[ i ]	= raw2uv( sequence_order[ i ], raw_data[ i ] );
 }
 
 void NAFE13388_Base::command( uint16_t com )

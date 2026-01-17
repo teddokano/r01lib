@@ -59,8 +59,8 @@ class AFE_base : public SPI_for_AFE
 {
 public:
 	/** ADC readout types */
-	using raw_t								= int32_t;
-	using microvolt_t						= double;
+	using raw_t			= int32_t;
+	using microvolt_t	= double;
 
 	/** Constructor to create a AFE_base instance */
 	AFE_base( SPI& spi, bool spi_addr, bool highspeed_variant, int nINT, int DRDY, int SYN, int nRESET );
@@ -112,6 +112,12 @@ public:
 	/** All logical channel disable
 	 */
 	virtual void close_logical_channel( void )			= 0;
+
+	/** Logical channel enable
+	 *
+	 * @param ch logical channel number (0 ~ 15)
+	 */
+	virtual void enable_logical_channel( int ch )		= 0;
 
 	/** Start ADC
 	 *
@@ -300,6 +306,9 @@ protected:
 	/** Number of enabled logical channels */
 	int				enabled_channels;
 	
+	/** Number of enabled logical channels */
+	uint8_t			sequence_order[ 16 ];
+	
 	/** Coefficient to convert from ADC read value to micro-volt */
 	double			coeff_uV[ 16 ];
 
@@ -374,10 +383,29 @@ public:
 	 */
 	virtual void open_logical_channel( int ch, const uint16_t (&cc)[ 4 ] );
 
+	class LogicalChannel
+	{
+	public:
+		AFE_base&	afe;
+		uint8_t		ch_number;
+
+		LogicalChannel( AFE_base& a, uint8_t ch, const uint16_t (&cc)[ 4 ] );
+		LogicalChannel( AFE_base& a, uint8_t ch, uint16_t cc0 = 0x0000, uint16_t cc1 = 0x0000, uint16_t cc2 = 0x0000, uint16_t cc3 = 0x0000 );
+
+		virtual ~LogicalChannel();
+		
+		void	update( const uint16_t (&cc)[ 4 ] );
+		void	update( uint16_t cc0 = 0x0000, uint16_t cc1 = 0x0000, uint16_t cc2 = 0x0000, uint16_t cc3 = 0x0000 );
+		void	enable( void );
+		void	disable( void );
+		
+		template<class T> T read(void);
+		template<class T> operator T(void);
+	};
+
 private:	
 	double 	calc_delay( int ch );
 	void 	channel_info_update( uint16_t value );
-
 public:
 	/** Logical channel disable
 	 *
@@ -388,6 +416,12 @@ public:
 	/** All logical channel disable
 	 */
 	virtual void close_logical_channel( void );
+
+	/** Logical channel enable
+	 *
+	 * @param ch logical channel number (0 ~ 15)
+	 */
+	void	enable_logical_channel( int ch );
 
 	/** Start ADC
 	 *
@@ -426,6 +460,19 @@ public:
 	 * @param data_vctr vector object to store ADC data
 	 */
 	virtual void	read( std::vector<raw_t>& data_vctr );
+
+	/** Read ADC for all channel
+	 *
+	 * @param data_ptr pointer to array to store ADC data
+	 */
+	virtual void	read( microvolt_t *data );
+
+	/** Read ADC for all channel
+	 *
+	 * @param data_vctr vector object to store ADC data
+	 */
+	virtual void	read( std::vector<microvolt_t>& data_vctr );
+
 	
 	constexpr static double	pga_gain[]	= { 0.2, 0.4, 0.8, 1, 2, 4, 8, 16 };
 
