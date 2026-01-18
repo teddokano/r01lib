@@ -3,7 +3,7 @@
  *  @class   NAFE13388
  *  @author  Tedd OKANO
  *
- *  Copyright: 2023 - 2025 Tedd OKANO
+ *  Copyright: 2023 - 2026 Tedd OKANO
  *  Released under the MIT license
  *
  *  A simple class library for NXP Analog Front End: NAFE13388
@@ -13,31 +13,38 @@
  *  #include	"r01lib.h"
  *  #include	"afe/NAFE13388_UIM.h"
  *  
- *  SPI				spi( D11, D12, D13, D10 );	//	MOSI, MISO, SCLK, CS
- *  NAFE13388_UIM	afe( spi );
+ *  using	microvolt_t	= NAFE13388_UIM::microvolt_t;
  *  
- *  int main( void )
- *  {
- *  	printf( "***** Hello, NAFE13388 UIM board! *****\r\n" );
+ *   SPI				spi( ARD_MOSI, ARD_MISO, ARD_SCK, ARD_CS );	//	MOSI, MISO, SCLK, CS
+ *   NAFE13388_UIM	afe( spi );
  *  
- *  	spi.frequency( 1'000'000 );
- *  	spi.mode( 1 );
+ *   int main( void )
+ *   {
+ *  	 printf( "***** Hello, NAFE13388 UIM board! *****\r\n" );
  *  
- *  	afe.begin();
+ *  	 spi.frequency( 1'000'000 );
+ *  	 spi.mode( 1 );
  *  
- *  	afe.open_logical_channel( 0, 0x1710, 0x00A4, 0xBC00, 0x0000 );
- *  	afe.open_logical_channel( 1, 0x2710, 0x00A4, 0xBC00, 0x0000 );
+ *  	 afe.begin();
  *  
- *  	while ( true )
- *  	{
- *  		for ( auto ch = 0; ch < 2; ch++ )
- *  		{
- *  			int32_t	data	= afe.start_and_read( ch );
- *  			printf( "channel %2d : %8ld (%lfuV),", ch, data, afe.raw2uv( ch, data ) );
- *  		}
- *  		printf( "\r\n" );
- *  	}
- *  }
+ *  	 afe.logical_channel[ 0 ].configure( 0x1710, 0x00A4, 0xBC00, 0x0000 );
+ *  	 afe.logical_channel[ 1 ].configure( 0x2710, 0x00A4, 0xBC00, 0x0000 );
+ *  
+ *  	 afe.use_DRDY_trigger( false );	//	default = true
+ *  
+ *  	 printf( "\r\nenabled logical channel(s) %2d\r\n", afe.enabled_logical_channels() );
+ *  
+ *  	 microvolt_t	data0;
+ *  	 microvolt_t	data1;
+ *  
+ *  	 while ( true )
+ *  	 {
+ *  		 data0	= afe.logical_channel[ 0 ];	//	read logical channel 0
+ *  		 data1	= afe.logical_channel[ 1 ];	//	read logical channel 1
+ *  
+ *  		 printf( "   channel 0 : %12.9lfV,   channel 1 : %12.9lfV\r\n", data0 * 1e-6, data1 * 1e-6 );
+ *  	 }
+ *   }
  *  @endcode
  */
 
@@ -386,22 +393,22 @@ public:
 	class LogicalChannel
 	{
 	public:
-		AFE_base&	afe;
-		uint8_t		ch_number;
-
-		LogicalChannel( AFE_base& a, uint8_t ch, const uint16_t (&cc)[ 4 ] );
-		LogicalChannel( AFE_base& a, uint8_t ch, uint16_t cc0 = 0x0000, uint16_t cc1 = 0x0000, uint16_t cc2 = 0x0000, uint16_t cc3 = 0x0000 );
-
+		LogicalChannel();
 		virtual ~LogicalChannel();
 		
-		void	update( const uint16_t (&cc)[ 4 ] );
-		void	update( uint16_t cc0 = 0x0000, uint16_t cc1 = 0x0000, uint16_t cc2 = 0x0000, uint16_t cc3 = 0x0000 );
+		void	configure( const uint16_t (&cc)[ 4 ] );
+		void	configure( uint16_t cc0 = 0x0000, uint16_t cc1 = 0x0000, uint16_t cc2 = 0x0000, uint16_t cc3 = 0x0000 );
 		void	enable( void );
 		void	disable( void );
 		
 		template<class T> T read(void);
 		template<class T> operator T(void);
+
+		uint8_t			ch_number;
+		NAFE13388_Base	*afe_ptr;
 	};
+	
+	LogicalChannel	logical_channel[ 16 ];
 
 private:	
 	double 	calc_delay( int ch );

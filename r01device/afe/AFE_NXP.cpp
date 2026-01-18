@@ -2,7 +2,7 @@
  *
  *  @author  Tedd OKANO
  *
- *  Copyright: 2023 - 2025 Tedd OKANO
+ *  Copyright: 2023 - 2026 Tedd OKANO
  *  Released under the MIT license
  */
 
@@ -18,14 +18,8 @@ double	AFE_base::delay_accuracy	= 1.1;
 
 
 
-NAFE13388_Base::LogicalChannel::LogicalChannel( AFE_base& a, uint8_t ch, const uint16_t (&cc)[ 4 ] ) : afe( a ), ch_number( ch )
+NAFE13388_Base::LogicalChannel::LogicalChannel()
 {
-	update( cc );
-}
-
-NAFE13388_Base::LogicalChannel::LogicalChannel( AFE_base& a, uint8_t ch, uint16_t cc0, uint16_t cc1, uint16_t cc2, uint16_t cc3 ) : afe( a ), ch_number( ch )
-{
-	update( cc0, cc1, cc2, cc3 );
 }
 
 NAFE13388_Base::LogicalChannel::~LogicalChannel()
@@ -33,38 +27,38 @@ NAFE13388_Base::LogicalChannel::~LogicalChannel()
 	disable();
 }
 
-void NAFE13388_Base::LogicalChannel::update( const uint16_t (&cc)[ 4 ] )
+void NAFE13388_Base::LogicalChannel::configure( const uint16_t (&cc)[ 4 ] )
 {
-	afe.open_logical_channel( ch_number, cc );
+	afe_ptr->open_logical_channel( ch_number, cc );
 }
 
-void NAFE13388_Base::LogicalChannel::update( uint16_t cc0, uint16_t cc1, uint16_t cc2, uint16_t cc3 )
+void NAFE13388_Base::LogicalChannel::configure( uint16_t cc0, uint16_t cc1, uint16_t cc2, uint16_t cc3 )
 {
 	const ch_setting_t	tmp_ch_config	= { cc0, cc1, cc2, cc3 };
-	afe.open_logical_channel( ch_number, tmp_ch_config );
+	afe_ptr->open_logical_channel( ch_number, tmp_ch_config );
 }
 
 void NAFE13388_Base::LogicalChannel::enable( void )
 {
-	afe.enable_logical_channel( ch_number );
+	afe_ptr->enable_logical_channel( ch_number );
 }
 
 void NAFE13388_Base::LogicalChannel::disable( void )
 {
-	afe.close_logical_channel( ch_number );
+	afe_ptr->close_logical_channel( ch_number );
 }
 
 template<>
 NAFE13388_Base::raw_t	NAFE13388_Base::LogicalChannel::read( void )
 {
-	return afe.start_and_read( ch_number );
+	return afe_ptr->start_and_read( ch_number );
 }
 
 template<>
 NAFE13388_Base::microvolt_t NAFE13388_Base::LogicalChannel::read( void )
 {
 	raw_t	v	= read<NAFE13388_Base::raw_t>();
-	return afe.raw2uv( ch_number, v );
+	return afe_ptr->raw2uv( ch_number, v );
 }
 
 template<>
@@ -212,6 +206,11 @@ AFE_base::callback_fp_t	AFE_base::cbf_DRDY		= nullptr;
 NAFE13388_Base::NAFE13388_Base( SPI& spi, bool spi_addr, bool hsv, int nINT, int DRDY, int SYN, int nRESET ) 
 	: AFE_base( spi, spi_addr, hsv, nINT, DRDY, SYN, nRESET )
 {
+	for ( auto i = 0; i < 16; i++ )
+	{
+		logical_channel[ i ].afe_ptr	= this;
+		logical_channel[ i ].ch_number	= i;
+	}
 }
 
 NAFE13388_Base::~NAFE13388_Base()
@@ -293,7 +292,7 @@ void NAFE13388_Base::channel_info_update( uint16_t value )
 		}
 	}
 
-#if 0	
+#if 0
 	for ( auto i = 0; i < bit_length; i++ )
 		printf( " %x", sequence_order[ i ] );
 	printf( "\r\n" );
