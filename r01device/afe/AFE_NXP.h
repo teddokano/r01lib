@@ -344,6 +344,33 @@ protected:
 
 };
 
+class LogicalChannel_Base
+{
+public:
+	LogicalChannel_Base() {}
+	virtual ~LogicalChannel_Base() {}
+	
+	void	enable( void );
+	void	disable( void );
+
+	template<class T> T read(void);
+		
+	operator AFE_base::raw_t(void);
+	operator AFE_base::microvolt_t(void);
+
+	template<class T> double operator+( T v ) { return (double)(*this) + (double)v; }
+	template<class T> double operator-( T v ) { return (double)(*this) - (double)v; }
+	template<class T> double operator*( T v ) { return (double)(*this) * (double)v; }
+	template<class T> double operator/( T v ) { return (double)(*this) / (double)v; }
+	template<class T> friend double operator+( T v, LogicalChannel_Base lc ) { return (double)v + (double)lc; }
+	template<class T> friend double operator-( T v, LogicalChannel_Base lc ) { return (double)v - (double)lc; }
+	template<class T> friend double operator*( T v, LogicalChannel_Base lc ) { return (double)v * (double)lc; }
+	template<class T> friend double operator/( T v, LogicalChannel_Base lc ) { return (double)v / (double)lc; }
+	
+	int			ch_number;
+	AFE_base	*afe_ptr;
+};
+
 class NAFE13388_Base : public AFE_base
 {
 public:
@@ -390,7 +417,7 @@ public:
 	 */
 	virtual void open_logical_channel( int ch, const uint16_t (&cc)[ 4 ] );
 
-	class LogicalChannel
+	class LogicalChannel : public LogicalChannel_Base
 	{
 	public:
 		LogicalChannel();
@@ -398,14 +425,6 @@ public:
 		
 		void	configure( const uint16_t (&cc)[ 4 ] );
 		void	configure( uint16_t cc0 = 0x0000, uint16_t cc1 = 0x0000, uint16_t cc2 = 0x0000, uint16_t cc3 = 0x0000 );
-		void	enable( void );
-		void	disable( void );
-		
-		template<class T> T read(void);
-		template<class T> operator T(void);
-
-		uint8_t			ch_number;
-		NAFE13388_Base	*afe_ptr;
 	};
 	
 	LogicalChannel	logical_channel[ 16 ];
