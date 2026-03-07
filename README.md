@@ -8,13 +8,51 @@ This library provides application code simple APIs for.. **GPIO**, **I²C**, **I
 This is a repository which works as a submodule of [**"r01lib_prj_generator"**](https://github.com/teddokano/r01lib_prj_generator).   
 The code is intended to build in MCUXpresso library projects.   
 Those libraries projects are..
-- _r01lib_frdm_mcxa153
-- _r01lib_frdm_mcxa156
-- _r01lib_frdm_mcxc444
-- _r01lib_frdm_mcxn236
-- _r01lib_frdm_mcxn947
+
+|library name|MCU board|
+|---|---|
+|_r01lib_frdm_mcxa153|FRDM-MCXA153|
+|_r01lib_frdm_mcxa156|FRDM-MCXA156|
+|_r01lib_frdm_mcxc444|FRDM-MCXC444|
+|_r01lib_frdm_mcxn236|FRDM-MCXN236|
+|_r01lib_frdm_mcxn947|FRDM-MCXN947|
 
 Each of these projects have MCU dependent driver code and settings for code building. The "r01lib" code is identical in all projects. Those can be just cpoied into the `source` folder and built.  
+
+**"r01lib"** is including some device class drivers for easy device operations.  
+
+|category|type|interface|
+|---|---|---|
+|AFE|NAFE33352|SPI|
+|AFE|NAFE13388|SPI|
+|LCD driver|PCA8561|I²C|
+|LCD module|AE_AQM0802|I²C|
+|LCD module|ACM2004D_FLW_FBW_IIC|I²C|
+|LCD module|ACM1602NI_FLW_FBW|I²C|
+|LED driver|PCA9955B|I²C|
+|LED driver|PCA9956B|I²C|
+|LED driver|PCA9957|SPI|
+|GPIO expander|PCA9554|I²C|
+|GPIO expander|PCA9555|I²C|
+|GPIO expander|PCAL6408A|I²C|
+|GPIO expander|PCAL6416A|I²C|
+|GPIO expander|PCAL6524|I²C|
+|GPIO expander|PCAL6534|I²C|
+|GPIO expander|PCAL9722|SPI|
+|RTC|PCF2131|I²C/SPI|
+|RTC|PCF85053A|I²C|
+|RTC|PCF85063A|I²C|
+|RTC|PCF85063TP|I²C|
+|RTC|PCF85263A|I²C|
+|temperature sensor|LM75B|I²C|
+|temperature sensor|P3T1035|I²C/I3C|
+|temperature sensor|P3T1085|I²C/I3C|
+|temperature sensor|P3T1755|I²C/I3C|
+|temperature sensor|P3T2030|I²C/I3C|
+|temperature sensor|PCT2075|I²C|
+|I²C bus switch|PCA9846|I²C|
+|EEPROM|M24C02|I²C|
+|Potentiometer|AD5161|I²C|
 
 ## References
 
