@@ -234,15 +234,6 @@ public:
 	 */
 	virtual double raw2v( int ch, raw_t value )	= 0;
 	
-	/** Coefficient to convert from ADC read value to micro-volt
-	 *
-	 * @param ch logical channel number
-	 */
-	inline double coeff_mV( int ch )
-	{
-		return coeff_V[ ch ];
-	}
-	
 	/** Caliculated delay from logical channel setting (for single channel)
 	 *
 	 * @param ch logical channel number
@@ -287,7 +278,7 @@ protected:
 	/** Number of enabled logical channels */
 	uint8_t			sequence_order[ 16 ];
 	
-	/** Coefficient to convert from ADC read value to micro-volt */
+	/** Coefficient to convert from ADC read value to volt */
 	double			coeff_V[ 16 ];
 
 	/** Multiplexer setting */

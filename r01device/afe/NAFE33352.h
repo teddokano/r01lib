@@ -214,6 +214,11 @@ public:
 	 */
 	virtual void	read( std::vector<volt_t>& data_vctr );
 
+	/** Convert raw output to volt
+	 *
+	 * @param ch logical channel number to select its gain coefficient
+	 * @param value ADC read value
+	 */
 	inline double raw2v( int ch, raw_t value )
 	{
 		if ( mux_setting[ ch ] == ISNS )
