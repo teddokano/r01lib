@@ -485,7 +485,7 @@ uint64_t NAFE33352_Base::serial_number( void )
 			
 float NAFE33352_Base::temperature( void )
 {
-	return reg( DIE_TEMP ) / 64.0;
+	return ((int16_t)reg( DIE_TEMP )) / 64.0;
 }
 
 /* NAFE33352 class ******************************************/

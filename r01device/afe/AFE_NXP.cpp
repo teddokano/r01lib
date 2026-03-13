@@ -478,7 +478,7 @@ uint64_t NAFE13388_Base::serial_number( void )
 
 float NAFE13388_Base::temperature( void )
 {
-	return reg( DIE_TEMP ) / 64.0;
+	return ((int16_t)reg( DIE_TEMP )) / 64.0;
 }
 
 void NAFE13388_Base::gain_offset_coeff( const ref_points &ref )
