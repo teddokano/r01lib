@@ -198,6 +198,9 @@ enum {
 	#define	ARD_MISO	SPI_MISO
 	#define	ARD_SCK		SPI_SCLK
 
+	#define	USBTX		P1_9
+	#define	USBRX		P1_8
+
 	#define	PIN_LED_OFF	true
 	#define	PIN_LED_ON	false
 
@@ -368,6 +371,9 @@ enum {
 	#define	ARD_MISO	SPI_MISO
 	#define	ARD_SCK		SPI_SCLK
 
+	#define	USBTX		P1_9
+	#define	USBRX		P1_8
+
 	#define	PIN_LED_OFF	true
 	#define	PIN_LED_ON	false
 
@@ -512,6 +518,9 @@ enum {
 	#define	ARD_MISO	D12
 	#define	ARD_SCK		D13
 
+	#define	USBTX		P0_3
+	#define	USBRX		P0_2
+
 	#define	PIN_LED_OFF	true
 	#define	PIN_LED_ON	false
 
@@ -627,6 +636,9 @@ enum {
 	#define	ARD_MISO	SPI_MISO
 	#define	ARD_SCK		SPI_SCLK
 
+	#define	USBTX		P0_3
+	#define	USBRX		P0_2
+
 	#define	PIN_LED_OFF	true
 	#define	PIN_LED_ON	false
 
@@ -736,6 +748,9 @@ enum {
 	#define	ARD_MOSI	SPI_MOSI
 	#define	ARD_MISO	SPI_MISO
 	#define	ARD_SCK		SPI_SCLK
+
+	#define	USBTX		D1
+	#define	USBRX		D0
 
 	#define	PIN_LED_OFF	true
 	#define	PIN_LED_ON	false
