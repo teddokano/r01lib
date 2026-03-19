@@ -3,7 +3,7 @@
 ## What is this?
 
 **"r01lib"** is a source code for **class libraries** to abstract MCUs and peripheral devices.  
-This library provides application code simple APIs for.. **GPIO**, **I²C**, **I3C**, **SPI**, **Pin-interrupt** and **timer (ticker)**.   
+This library provides application code simple APIs for.. **GPIO**, **I²C**, **I3C**, **SPI**, **Serial**, **Pin-interrupt** and **timer (ticker)**.   
 
 This is a repository which works as a submodule of [**"r01lib_prj_generator"**](https://github.com/teddokano/r01lib_prj_generator).   
 The code is intended to build in MCUXpresso library projects.   
