@@ -23,6 +23,18 @@ public:
 	/** Destractor */
 	virtual ~NAFE33352_Base();
 	
+	
+private:
+	/** Send data
+	 * 
+	 * @param data pointer to data buffer
+	 * @param size data size
+	 */
+	virtual void txrx( uint8_t *data, int size );
+
+	DigitalOut	*chip_select_pin;
+
+public:	
 	/** Set system-level config registers */
 	virtual void boot( void );
 

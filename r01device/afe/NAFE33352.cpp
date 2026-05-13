@@ -57,7 +57,7 @@ void NAFE33352_Base::DAC::configure( const uint16_t (&cc)[ 6 ] )
 
 void NAFE33352_Base::DAC::configure( ModeSelect mode, double full_scale_range )
 {
-	uint16_t	default_dac_setting[ 6 ]	= { 0x0000, 0x1000, 0x87FF, 0x8200, 0xE7FF, 0x0C00 };
+	uint16_t	default_dac_setting[ 6 ]	= { 0x0000, 0x1000, 0x87FF, 0x0000, 0xE7FF, 0x0C00 };
 	
 	output_mode	= mode;
 	
@@ -127,11 +127,24 @@ NAFE33352_Base::NAFE33352_Base( SPI& spi, bool spi_addr, bool hsv, int nINT, int
 	}
 	
 	dac.afe_ptr	= this;
+
+	chip_select_pin	= spi.cs_manual_control( true );
 }
 
 NAFE33352_Base::~NAFE33352_Base()
 {
 }
+
+
+void NAFE33352_Base::txrx( uint8_t *data, int size )
+{
+	*chip_select_pin	= false;
+	SPI_for_AFE::txrx( data, size );
+	wait_us( 4 );
+	*chip_select_pin	= true;
+}
+
+
 
 void NAFE33352_Base::boot( void )
 {
