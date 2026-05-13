@@ -53,7 +53,8 @@ SPI::SPI( int mosi, int miso, int sclk, int cs ) : Obj( true ), chip_select( cs 
 	_miso.pin_mux( mux_setting );
 //	_cs.pin_mux(   mux_setting );
 
-	chip_select	= true;
+	chip_select			= true;
+	manual_cs_control	= false;
 }
 
 SPI::~SPI()
@@ -87,9 +88,13 @@ status_t SPI::write( uint8_t *wp, uint8_t *rp, int length )
 	masterXfer.rxData		= rp;
 	masterXfer.dataSize		= length;
 
-	chip_select	= false;
+	if ( !manual_cs_control )
+		chip_select	= false;
+	
 	status	= SPI_MasterTransferBlocking( unit_base, &masterXfer );
-	chip_select	= true;
+
+	if ( !manual_cs_control )
+		chip_select	= true;
 
 	return status;
 }
@@ -138,7 +143,7 @@ status_t SPI::write( uint8_t *wp, uint8_t *rp, int length )
 	#error Not supported CPU
 #endif
 
-SPI::SPI( int mosi, int miso, int sclk, int cs ) : Obj( true )
+SPI::SPI( int mosi, int miso, int sclk, int cs ) : Obj( true ), chip_select( cs )
 {
 #ifdef	CPU_MCXN947VDF
 #elif	CPU_MCXN236VDF
@@ -192,7 +197,6 @@ SPI::SPI( int mosi, int miso, int sclk, int cs ) : Obj( true )
 
 	//	pin enable
 	
-	DigitalInOut	_cs(   cs   );
 	DigitalInOut	_mosi( mosi );
 	DigitalInOut	_miso( miso );
 	DigitalInOut	_sclk( sclk );
@@ -202,7 +206,9 @@ SPI::SPI( int mosi, int miso, int sclk, int cs ) : Obj( true )
 	_mosi.pin_mux( mux_setting );
 	_sclk.pin_mux( mux_setting );
 	_miso.pin_mux( mux_setting );
-	_cs.pin_mux(   mux_setting );
+	chip_select.pin_mux( mux_setting );
+	
+	manual_cs_control	= false;
 
 #pragma GCC diagnostic pop
 }
@@ -246,3 +252,12 @@ status_t SPI::write( uint8_t *wp, uint8_t *rp, int length )
 }
 
 #endif // CPU_MCXC444VLH
+
+DigitalOut* SPI::cs_manual_control( bool flag )
+{
+	chip_select.pin_mux( flag ? 0 : 2 );
+	chip_select	= true;
+	
+	return &chip_select;
+}
+

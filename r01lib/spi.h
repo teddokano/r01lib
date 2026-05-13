@@ -70,13 +70,20 @@ public:
 	 */	
 	virtual status_t		write( uint8_t *wp, uint8_t *rp, int length );
 
+	/** Manual CS control seting
+	 *  
+	 * @param flag manual setting = true, auto control = false
+	 */	
+	virtual DigitalOut* cs_manual_control( bool flag );
+
 	/** variable for reporting last state */
 	status_t				last_status;
 
-#ifdef	CPU_MCXC444VLH
 protected:
 	DigitalOut				chip_select;
+	bool					manual_cs_control;
 private:
+#ifdef	CPU_MCXC444VLH
 	spi_master_config_t		masterConfig;
 	SPI_Type				*unit_base;
 #else
