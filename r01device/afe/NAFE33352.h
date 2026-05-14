@@ -418,28 +418,28 @@ public:
 	using	RegVct			= std::vector<RegisterVariant>;
 	
 	/** Command
-	 *	
-	 * @param com "Comand" type or uint16_t value
+	 *
+	 * @param com "Command" type or uint16_t value
 	 */
 	virtual void		command( uint16_t com );
 
 	/** Write register
 	 *
-	 *	Writes register. Register width is selected by reg type (Register16 ot Register24)
+	 *	Writes register. Register width is selected by reg type (Register16 or Register24)
 	 * @param reg register specified by Register16 member
 	 */
 	virtual void		reg( Register16 r, uint16_t value );
 
 	/** Write register
 	 *
-	 *	Writes register. Register width is selected by reg type (Register16 ot Register24)
+	 *	Writes register. Register width is selected by reg type (Register16 or Register24)
 	 * @param reg register specified by Register24 member
 	 */
 	virtual void		reg( Register24 r, uint32_t value );
 
 	/** Read register
 	 *
-	 *	Reads register. Register width is selected by reg type (Register16 ot Register24)
+	 *	Reads register. Register width is selected by reg type (Register16 or Register24)
 	 * @param reg register specified by Register16 member
 	 * @return readout value
 	 */
@@ -447,18 +447,18 @@ public:
 
 	/** Read register
 	 *
-	 *	Reads register. Register width is selected by reg type (Register16 ot Register24)
+	 *	Reads register. Register width is selected by reg type (Register16 or Register24)
 	 * @param reg register specified by Register24 member
 	 * @return readout value
 	 */
 	virtual uint32_t	reg( Register24 r );
-	
+
 	/** Register bit operation
 	 *
-	 *	overwrite bits i a register
+	 *	Overwrite bits in a register
 	 * @param reg register specified by Register16 or Register24 member
 	 * @param mask mask bits
-	 * @param reg value to over write
+	 * @param value value to overwrite
 	 */
 	template<typename T>
 	uint32_t	bit_op( T rg, uint32_t mask, uint32_t value )
@@ -469,19 +469,19 @@ public:
 		v	|= value & ~mask;
 
 		reg( rg, v );
-		
+
 		return v;
 	}
-	
-	/** Read part_number
+
+	/** Read part number
 	 *
-	 * @return 0x13388B40 
+	 * @return part number read from PN2, PN1 and PN0_REV registers
 	 */
 	uint64_t	part_number( void );
 
-	/** Read rivision number
+	/** Read revision number
 	 *
-	 * @return PN0 register value & 0xF
+	 * @return PN0_REV register value & 0xF
 	 */
 	uint8_t	revision_number( void );
 

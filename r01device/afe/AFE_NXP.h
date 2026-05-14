@@ -1,6 +1,6 @@
 /** NXP Analog Front End class library for MCX
  *
- *  @class   NAFE13388
+ *  @file    AFE_NXP.h
  *  @author  Tedd OKANO
  *
  *  Copyright: 2023 - 2026 Tedd OKANO
@@ -70,7 +70,7 @@ public:
 	using volt_t	= double;
 	using ampere_t	= double;
 
-	/** Constructor to create a AFE_base instance */
+	/** Constructor to create an AFE_base instance */
 	AFE_base( SPI& spi, bool spi_addr, bool highspeed_variant, int nINT, int DRDY, int SYN, int nRESET, int SYNCDAC  );
 
 	/** Destractor */
@@ -234,7 +234,7 @@ public:
 	 */
 	virtual double raw2v( int ch, raw_t value )	= 0;
 	
-	/** Caliculated delay from logical channel setting (for single channel)
+	/** Calculated delay from logical channel setting (for single channel)
 	 *
 	 * @param ch logical channel number
 	 */
@@ -243,7 +243,7 @@ public:
 		return ch_delay[ ch ];
 	}
 
-	/** Caliculated delay from logical channel setting (for all channels)
+	/** Calculated delay from logical channel setting (for all channels)
 	 */
 	inline double drdy_delay( void )
 	{
@@ -351,7 +351,7 @@ public:
 		int				cal_index;
 	} ref_points;
 	
-	/** Constructor to create a AFE_base instance */
+	/** Constructor to create an NAFE13388_Base instance */
 	NAFE13388_Base( SPI& spi, bool spi_addr, bool highspeed_variant, int nINT, int DRDY, int SYN, int nRESET );
 
 	/** Destractor */
@@ -670,28 +670,28 @@ public:
 	using	RegVct			= std::vector<RegisterVariant>;
 	
 	/** Command
-	 *	
-	 * @param com "Comand" type or uint16_t value
+	 *
+	 * @param com "Command" type or uint16_t value
 	 */
 	virtual void		command( uint16_t com );
 
 	/** Write register
 	 *
-	 *	Writes register. Register width is selected by reg type (Register16 ot Register24)
+	 *	Writes register. Register width is selected by reg type (Register16 or Register24)
 	 * @param reg register specified by Register16 member
 	 */
 	virtual void		reg( Register16 r, uint16_t value );
 
 	/** Write register
 	 *
-	 *	Writes register. Register width is selected by reg type (Register16 ot Register24)
+	 *	Writes register. Register width is selected by reg type (Register16 or Register24)
 	 * @param reg register specified by Register24 member
 	 */
 	virtual void		reg( Register24 r, uint32_t value );
 
 	/** Read register
 	 *
-	 *	Reads register. Register width is selected by reg type (Register16 ot Register24)
+	 *	Reads register. Register width is selected by reg type (Register16 or Register24)
 	 * @param reg register specified by Register16 member
 	 * @return readout value
 	 */
@@ -699,18 +699,18 @@ public:
 
 	/** Read register
 	 *
-	 *	Reads register. Register width is selected by reg type (Register16 ot Register24)
+	 *	Reads register. Register width is selected by reg type (Register16 or Register24)
 	 * @param reg register specified by Register24 member
 	 * @return readout value
 	 */
 	virtual uint32_t	reg( Register24 r );
-	
+
 	/** Register bit operation
 	 *
-	 *	overwrite bits i a register
+	 *	Overwrite bits in a register
 	 * @param reg register specified by Register16 or Register24 member
 	 * @param mask mask bits
-	 * @param reg value to over write
+	 * @param value value to overwrite
 	 */
 	template<typename T>
 	uint32_t	bit_op( T rg, uint32_t mask, uint32_t value )
@@ -721,17 +721,17 @@ public:
 		v	|= value & ~mask;
 
 		reg( rg, v );
-		
+
 		return v;
 	}
-	
-	/** Read part_number
+
+	/** Read part number
 	 *
-	 * @return 0x13388B40 
+	 * @return part number read from PN2, PN1 and PN0 registers (e.g. 0x13388B40)
 	 */
 	uint32_t	part_number( void );
 
-	/** Read rivision number
+	/** Read revision number
 	 *
 	 * @return PN0 register value & 0xF
 	 */
@@ -748,10 +748,10 @@ public:
 	 * @return die temperature in celsius
 	 */
 	float	temperature( void );
-	
+
 	/** Gain and offset coefficient customization
 	 *
-	 *	Sets gain and offset coefficients with given target ADC read-out values at two reference voltaeg points
+	 *	Sets gain and offset coefficients with given target ADC read-out values at two reference voltage points
 	 * @param ref struct to define the target coefficient index and two reference poins and reference pre-calibrated coeffs
 	 */
 	void	gain_offset_coeff( const ref_points &ref );
