@@ -1,7 +1,7 @@
 /*
  *  @author Tedd OKANO
  *
- *  Released under the MIT license License
+ *  Released under the MIT license
  */
 
 #ifndef ARDUINO_LED_DRIVER_NXP_ARD_H
@@ -65,7 +65,7 @@ public:
 	 */
 	void pwm( float* values );
 
-	/** Buffer mode enable/Disble
+	/** Buffer mode enable/Disable
 	 *
 	 * @param flag 'true' for enabling
 	 */
@@ -256,7 +256,7 @@ public:
 	 */
 	void pwm( float* values );
 
-	/** Buffer mode enable/Disble
+	/** Buffer mode enable/Disable
 	 *
 	 * @param flag 'true' for enabling
 	 */
@@ -359,7 +359,7 @@ public:
 
 	/** Create a PCA9956B instance connected to specified I2C pins with specified address
 	 *
-	 * @param wire TwoWire instance
+	 * @param interface I2C instance
 	 * @param i2c_address I2C-bus address (default: (0xBC>>1))
 	 */
 	PCA9956B( I2C& interface, uint8_t i2c_address = (0x02 >> 1) );
@@ -409,7 +409,7 @@ public:
 	 */
 	void pwm( float* values );
 
-	/** Buffer mode enable/Disble
+	/** Buffer mode enable/Disable
 	 *
 	 * @param flag 'true' for enabling
 	 */
@@ -519,7 +519,7 @@ public:
 		PWMALL, IREFALL
 	};
 	
-	/** Create a PCA9957 instance connected to specified I2C pins with specified address
+	/** Create a PCA9957 instance connected to specified SPI
 	 */
 	PCA9957( SPI& interface );
 	virtual ~PCA9957();
@@ -568,7 +568,7 @@ public:
 	 */
 	void pwm( float* values );
 
-	/** Buffer mode enable/Disble
+	/** Buffer mode enable/Disable
 	 *
 	 * @param flag 'true' for enabling
 	 */
