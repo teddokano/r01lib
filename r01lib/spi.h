@@ -1,7 +1,7 @@
 /*
  *  @author Tedd OKANO
  *
- *  Released under the MIT license License
+ *  Released under the MIT license
  */
 
 #ifndef R01LIB_SPI_H
@@ -22,10 +22,10 @@ extern "C" {
 
 
 /** SPI class
- *	
+ *
  *  @class SPI
  *
- *	A class for demonstrating SPI bus
+ *	A class for SPI bus operations
  */
 
 class SPI : public Obj
@@ -34,20 +34,20 @@ public:
 	
 	/** Create a SPI instance with specified pins
 	 *
-	 * @param mosi (option) pin number to connect MOSI
-	 * @param miso (option) pin number to connect MISO
-	 * @param sclk (option) pin number to connect SCLK
-	 * @param cs (option) pin number to connect CS
+	 * @param mosi (optional) pin number to connect MOSI
+	 * @param miso (optional) pin number to connect MISO
+	 * @param sclk (optional) pin number to connect SCLK
+	 * @param cs   (optional) pin number to connect CS
 	 */
 	SPI( int mosi = D11, int miso = D12, int sclk = D13, int cs = D10 );
 	
-	/** Destractor to freeing SPI resource
+	/** Destructor to free SPI resource
 	 */
 	virtual ~SPI();
 
 	/** Frequency settings
-	 * 
-	 * @param frequency (option) define default SCLK frequency
+	 *
+	 * @param frequency (optional) SCLK frequency in Hz
 	 */
 	virtual void	frequency( uint32_t frequency = SPI_FREQ );
 
@@ -70,13 +70,20 @@ public:
 	 */	
 	virtual status_t		write( uint8_t *wp, uint8_t *rp, int length );
 
+	/** Manual CS control setting
+	 *
+	 * @param flag manual setting = true, auto control = false
+	 */	
+	virtual DigitalOut* cs_manual_control( bool flag );
+
 	/** variable for reporting last state */
 	status_t				last_status;
 
-#ifdef	CPU_MCXC444VLH
 protected:
 	DigitalOut				chip_select;
+	bool					manual_cs_control;
 private:
+#ifdef	CPU_MCXC444VLH
 	spi_master_config_t		masterConfig;
 	SPI_Type				*unit_base;
 #else

@@ -2,7 +2,7 @@
  *
  *  @author  Tedd OKANO
  *
- *  Copyright: 2023 - 2024 Tedd OKANO
+ *  Copyright: 2023 - 2026 Tedd OKANO
  *  Released under the MIT license
  */
 
@@ -25,7 +25,7 @@ public:
 	 */
 	void txrx( uint8_t *data, int size );
 
-	/** Register write, 8 bit
+	/** Send command (register address only, no data)
 	 *
 	 * @param reg register index
 	 */
