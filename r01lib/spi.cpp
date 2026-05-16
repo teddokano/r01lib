@@ -99,6 +99,12 @@ status_t SPI::write( uint8_t *wp, uint8_t *rp, int length )
 	return status;
 }
 
+DigitalOut* SPI::cs_manual_control( bool flag )
+{
+	chip_select	= true;
+	
+	return &chip_select;
+}
 
 #else	//	CPU_MCXC444VLH
 
@@ -251,8 +257,6 @@ status_t SPI::write( uint8_t *wp, uint8_t *rp, int length )
 	return LPSPI_MasterTransferBlocking( unit_base, &masterXfer );
 }
 
-#endif // CPU_MCXC444VLH
-
 DigitalOut* SPI::cs_manual_control( bool flag )
 {
 	chip_select.pin_mux( flag ? 0 : 2 );
@@ -260,4 +264,7 @@ DigitalOut* SPI::cs_manual_control( bool flag )
 	
 	return &chip_select;
 }
+
+
+#endif // CPU_MCXC444VLH
 
