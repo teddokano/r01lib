@@ -17,6 +17,13 @@
 #elif	CPU_MCXN236VDF
 	#undef	PWM0	//	To avoid name conflicts with MCXN947_cm33_core0.h
 	#undef	PWM1	//	To avoid name conflicts with MCXN947_cm33_core0.h
+#elif	CPU_MCXA153VLH
+	#undef	PWM0	//	To avoid name conflicts with io.h PWM pin names
+	#undef	PWM1	//	To avoid name conflicts with io.h PWM pin names
+	#undef	PWM2	//	To avoid name conflicts with io.h PWM pin names
+	#undef	PWM3	//	To avoid name conflicts with io.h PWM pin names
+	#undef	PWM4	//	To avoid name conflicts with io.h PWM pin names
+	#undef	PWM5	//	To avoid name conflicts with io.h PWM pin names
 #endif
 
 enum access_word : uint8_t
