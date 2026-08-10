@@ -47,6 +47,8 @@
 #ifndef R01LIB_PWMOUT_H
 #define R01LIB_PWMOUT_H
 
+#if defined( CPU_MCXA153VLH )
+
 extern "C" {
 #include "fsl_pwm.h"
 #include "fsl_clock.h"
@@ -121,5 +123,7 @@ private:
     uint32_t _period_us;
     uint32_t _pulse_us;
 };
+
+#endif // defined( CPU_MCXA153VLH )
 
 #endif // R01LIB_PWMOUT_H

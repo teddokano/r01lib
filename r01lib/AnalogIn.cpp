@@ -21,6 +21,8 @@
  * @license MIT
  */
 
+#if defined( CPU_MCXA153VLH )
+
 extern "C" {
 #include "fsl_reset.h"
 }
@@ -189,3 +191,5 @@ AnalogIn::operator float()
 {
     return read();
 }
+
+#endif // defined( CPU_MCXA153VLH )

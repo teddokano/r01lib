@@ -39,6 +39,8 @@
 #ifndef R01LIB_ANALOGIN_H
 #define R01LIB_ANALOGIN_H
 
+#if defined( CPU_MCXA153VLH )
+
 extern "C" {
 #include "fsl_lpadc.h"
 #include "fsl_clock.h"
@@ -101,5 +103,7 @@ private:
     uint8_t _input_positive;  // hardware ADC0_An number
     int     _pin;
 };
+
+#endif // defined( CPU_MCXA153VLH )
 
 #endif // R01LIB_ANALOGIN_H
