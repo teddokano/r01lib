@@ -15,9 +15,9 @@ extern "C" {
 #endif
 }
 
-#include	"spi.h"
 #include	"io.h"
 
+/** default SCLK frequency (Hz) used by frequency() when no argument is given */
 #define	SPI_FREQ		1'000'000UL
 
 
@@ -62,6 +62,18 @@ public:
 	 */
 	virtual void	mode( uint8_t mode = 0 );
 
+	/** Bit order setting
+	 *
+	 * @param order 0 = LSB first, non-zero = MSB first (matches Arduino's
+	 *              LSBFIRST=0/MSBFIRST=1 convention)
+	 */
+	virtual void	bit_order( uint8_t order );
+
+	/** SPI peripheral's input clock, in Hz -- the reference frequency() is
+	 *  divided down from.
+	 */
+	uint32_t	clock_freq( void ) const { return master_clk_freq; }
+
 	/** Data transfer on SPI
 	 *  
 	 * @param wp data to write
@@ -70,10 +82,29 @@ public:
 	 */	
 	virtual status_t		write( uint8_t *wp, uint8_t *rp, int length );
 
+	/** Fast scalar single-byte transfer.
+	 *
+	 *  Bypasses write()'s generic blocking-transfer per-call overhead
+	 *  (disable/flush-FIFO/clear-status-flags/re-enable), which dominates
+	 *  cost for a single 8-bit frame -- this exists for callers that move
+	 *  data one byte at a time in a tight loop (e.g. the standard Arduino
+	 *  SD library's spiRec()/spiSend()).
+	 *
+	 * @param out byte to transmit
+	 * @return byte received
+	 */
+	virtual uint8_t			transfer_byte( uint8_t out );
+
 	/** Manual CS control setting
 	 *
-	 * @param flag manual setting = true, auto control = false
-	 */	
+	 *  Switches the CS pin's mux between plain GPIO (so the sketch can
+	 *  drive it directly via the returned DigitalOut*) and the LPSPI
+	 *  peripheral's own hardware PCS function. The hardware-PCS ALT is
+	 *  whichever one this instance's pin set needs -- see peripheral_mux.
+	 *
+	 * @param flag manual setting = true, auto (hardware PCS) control = false
+	 * @return pointer to the CS pin's DigitalOut, for manual drive when flag is true
+	 */
 	virtual DigitalOut* cs_manual_control( bool flag );
 
 	/** variable for reporting last state */
@@ -93,6 +124,16 @@ private:
 	
 	uint32_t				master_clk_freq;
 	uint32_t				master_pcs_4_xfer;
+
+	/** ALT that reaches the SPI peripheral on this instance's pins.
+	 *
+	 *  Not a constant across instances: on FRDM-MCXN947 the Arduino header
+	 *  pins reach FlexComm1 on ALT2 while the MikroBus pins reach FlexComm6
+	 *  on ALT3. The constructor records whichever one it used so that
+	 *  cs_manual_control() can hand the CS pin back to the *right*
+	 *  peripheral, rather than to whatever ALT2 happens to be on that pin.
+	 */
+	uint8_t					peripheral_mux;
 };
 
 #endif // R01LIB_SPI_H

@@ -26,17 +26,13 @@ extern "C" {
 
 #ifdef	CPU_MCXN947VDF
 	#define EXAMPLE_I2C_MASTER_BASE			(LPI2C2_BASE)
-	#define LPI2C_MASTER_CLOCK_FREQUENCY 	CLOCK_GetLPFlexCommClkFreq( 2u )
 	#define EXAMPLE_I2C_MASTER				((LPI2C_Type *)EXAMPLE_I2C_MASTER_BASE)
 #elif	CPU_MCXN236VDF
-	#define EXAMPLE_I2C_MASTER_BASE			(LPI2C2_BASE)
-	#define LPI2C_MASTER_CLOCK_FREQUENCY	CLOCK_GetLPFlexCommClkFreq( 2u )
-	#define EXAMPLE_I2C_MASTER				((LPI2C_Type *)EXAMPLE_I2C_MASTER_BASE)
+	/* every pin combination picks its own instance -- see the constructor */
 #elif	CPU_MCXA156VLL
-	#define LPI2C_MASTER_CLOCK_FREQUENCY	CLOCK_GetLpi2cClkFreq( 0u )
+	/* every pin combination picks its own instance -- see the constructor */
 #elif	CPU_MCXA153VLH
 	#define EXAMPLE_I2C_MASTER_BASE			LPI2C0
-	#define LPI2C_MASTER_CLOCK_FREQUENCY	CLOCK_GetLpi2cClkFreq()
 	#define EXAMPLE_I2C_MASTER				((LPI2C_Type *)EXAMPLE_I2C_MASTER_BASE)
 #elif	CPU_MCXC444VLH
 	#define I2C_MASTER_CLK_SRC				I2C0_CLK_SRC
@@ -46,42 +42,108 @@ extern "C" {
 	#error Not supported CPU
 #endif
 
+#ifndef	CPU_MCXC444VLH
+/** Source clock feeding one LPI2C instance.
+ *
+ *  Asked per instance, not per board. This used to be a single macro with the
+ *  instance number written into it -- CLOCK_GetLPFlexCommClkFreq( 2u ) -- which
+ *  is right for Wire (LPI2C2) and wrong for Wire2 (LPI2C3), and wrong three
+ *  ways on A156, where LPI2C0, LPI2C1 and LPI2C3 are all reachable and the
+ *  macro named 0 for all of them.
+ *
+ *  Nothing keeps sibling instances on the same source. FlexComm1 and FlexComm6
+ *  were both moved from 12MHz to 48MHz to fix SPI's clock, while FlexComm2 and
+ *  3 stayed where they were; had I2C been the peripheral moved, a fixed index
+ *  here would have computed every baud rate from the wrong number, and done it
+ *  silently -- LPI2C_MasterSetBaudRate() has no way to tell it was handed a
+ *  frequency the hardware is not running at.
+ *
+ *  This is why the fix is worth making even though it changes no behaviour
+ *  today: FlexComm2 and FlexComm3 currently both run at 12MHz, so the value
+ *  produced is identical either way. It stops being identical the moment
+ *  someone re-attaches one of them.
+ */
+static uint32_t lpi2c_source_clock( LPI2C_Type *base )
+{
+#if defined( CPU_MCXN947VDF )
+	if ( base == LPI2C2 )	return CLOCK_GetLPFlexCommClkFreq( 2u );
+	if ( base == LPI2C3 )	return CLOCK_GetLPFlexCommClkFreq( 3u );
+#elif defined( CPU_MCXN236VDF )
+	if ( base == LPI2C2 )	return CLOCK_GetLPFlexCommClkFreq( 2u );
+	if ( base == LPI2C5 )	return CLOCK_GetLPFlexCommClkFreq( 5u );
+#elif defined( CPU_MCXA156VLL )
+	if ( base == LPI2C0 )	return CLOCK_GetLpi2cClkFreq( 0u );
+	if ( base == LPI2C1 )	return CLOCK_GetLpi2cClkFreq( 1u );
+	if ( base == LPI2C3 )	return CLOCK_GetLpi2cClkFreq( 3u );
+#elif defined( CPU_MCXA153VLH )
+	(void)base;		/* one LPI2C on this chip, and no index to give */
+	return CLOCK_GetLpi2cClkFreq();
+#endif
 
-I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl ), err_cb( nullptr )
+	/*  Reached only if the constructor started using an instance this
+	 *  function was never told about. Failing loudly beats returning a
+	 *  plausible number for the wrong peripheral.
+	 */
+	panic( "I2C: no source clock known for this LPI2C instance" );
+	return 0;
+}
+
+uint32_t I2C::lpi2c_clock( void ) const
+{
+	return lpi2c_source_clock( unit_base );
+}
+#endif	// CPU_MCXC444VLH
+
+
+I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl ), err_cb( nullptr ), _no_hw( no_hw ), _pin_low_timeout_us( 0 )
 {
 	if ( no_hw )
 		return;
 	
 #ifdef	CPU_MCXN947VDF
+	int	mux_setting;
+
 	if ( (sda == I2C_SDA) && (scl == I2C_SCL) )
-		;
-	else
-		panic( "FRDM-MCXN947 only support I2C_SDA(D18)/I2C_SCL(D19) pins for I2C" );
-	
-	constexpr int	mux_setting	= 2;
-	unit_base	= EXAMPLE_I2C_MASTER;
-	
-#elif	CPU_MCXN236VDF
-	if ( (sda == A4) && (scl == A5) )
-		;
+	{
+		mux_setting	= 2;
+		unit_base	= EXAMPLE_I2C_MASTER;
+	}
 	else if ( (sda == MB_SDA) && (scl == MB_SCL) )
-		;
+	{
+		// MikroBus header (P1_0/P1_1) -> FlexComm3 -> LPI2C3, Alt2 (confirmed
+		// against Zephyr's silicon-accurate pinctrl header, not derived by
+		// pin_mux.c position-counting -- see PwmOut.h's ALT-derivation
+		// postmortem for why that method alone isn't trusted anymore).
+		mux_setting	= 2;
+		unit_base	= LPI2C3;
+		RESET_ReleasePeripheralReset( kFC3_RST_SHIFT_RSTn );
+	}
 	else
-		panic( "FRDM-MCXN236 only support I2C_SDA(D18)/I2C_SCL(D19) pins for I2C" );
-	
-	constexpr int	mux_setting	= 2;
-	unit_base	= EXAMPLE_I2C_MASTER;
-	
+		panic( "FRDM-MCXN947 supports I2C_SDA(D18)/I2C_SCL(D19) or MB_SDA/MB_SCL pins for I2C" );
+
+#elif	CPU_MCXN236VDF
+	/* Rev C board. ALT2 for every pair, per Zephyr's MCXN236VDF-pinctrl.h.
+	 * D18/D19 (P1_16/P1_17) are FC5_P0/P1. MB_SDA/MB_SCL (P4_0/P4_1) are
+	 * FC2_P0/P1, the bus of the on-board accelerometer, and so are A4/A5
+	 * (P4_12/P4_13): one LPI2C2 behind both pairs. FlexComm2 is also
+	 * Serial1's LPUART2 (flexcomm_keep_shared() in mcu.h). */
+	constexpr int	mux_setting	= kPORT_MuxAlt2;
+
+	if ( (sda == I2C_SDA) && (scl == I2C_SCL) )
+		unit_base	= LPI2C5;
+	else if ( (sda == MB_SDA) && (scl == MB_SCL) )
+		unit_base	= LPI2C2;
+	else if ( (sda == A4) && (scl == A5) )
+		unit_base	= LPI2C2;
+	else
+		panic( "FRDM-MCXN236 supports I2C_SDA(D18)/I2C_SCL(D19), MB_SDA/MB_SCL or A4/A5 pins for I2C" );
+
 #elif	CPU_MCXA156VLL
+	/* ALTs from Zephyr's MCXA156VLL-pinctrl.h. I3C_SDA/I3C_SCL are the
+	 * same two pins as I2C_SDA/I2C_SCL (D18/D19) on this board. */
 	int	mux_setting	= kPORT_MuxAlt2;
 
-	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
-	{
-		mux_setting	= kPORT_MuxAlt2;
-		unit_base	= LPI2C0;
-		RESET_ReleasePeripheralReset( kLPI2C0_RST_SHIFT_RSTn );
-	}
-	else if ( (sda == I2C_SDA) && (scl == I2C_SCL) )
+	if ( (sda == I2C_SDA) && (scl == I2C_SCL) )
 	{
 		mux_setting	= kPORT_MuxAlt2;
 		unit_base	= LPI2C0;
@@ -106,21 +168,38 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 		RESET_ReleasePeripheralReset( kLPI2C1_RST_SHIFT_RSTn );
 	}
 	else
-		panic( "FRDM-MCXA156 supports I3C_SDA/I3C_SCL, I2C_SDA(D18)/I2C_SCL(D19), MB_SDA/MB_SCL or MB_MOSI/MB_SCK pins for I2C" );
+		panic( "FRDM-MCXA156 supports I2C_SDA(D18)/I2C_SCL(D19), MB_SDA/MB_SCL, MB_MOSI/MB_SCK or A4/A5 pins for I2C" );
 
 #elif	CPU_MCXA153VLH
+	/* LPI2C0 is reachable from all four pin pairs below, but it does not
+	 * sit on the same ALT for all of them -- P1_8/P1_9 and P1_0/P1_1 carry
+	 * it on ALT3, while P0_16/P0_17 and P3_28/P3_27 carry it on ALT2.
+	 * This used to be one constexpr ALT3 for every pair, which is right
+	 * only for the first two: on P0_16/P0_17 ALT3 is LPSPI0_PCS2/PCS3,
+	 * and on P3_28/P3_27 nothing is assigned to ALT3 at all. Only the
+	 * D18/D19 pair is reached through the Arduino layer (Wire), so the
+	 * other two were wrong without anything noticing. Values verified
+	 * against Zephyr's MCXA153VLH-pinctrl.h, generated from NXP's own
+	 * data -- see docs/porting_a_new_board.md on why position-counting
+	 * pin_mux.c is not trustworthy for this.
+	 */
+	/* Every branch below assigns this; the initializer is only here
+	 * because panic() is not declared noreturn, so the compiler cannot
+	 * see that the else arm never falls through. Same shape as the
+	 * MCXA156 branch above. */
+	int	mux_setting	= kPORT_MuxAlt3;
+
 	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
-		;
+		mux_setting	= kPORT_MuxAlt2;
 	else if ( (sda == I2C_SDA) && (scl == I2C_SCL) )
-		;
+		mux_setting	= kPORT_MuxAlt3;
 	else if ( (sda == MB_SDA) && (scl == MB_SCL) )
-		;
+		mux_setting	= kPORT_MuxAlt2;
 	else if ( (sda == MB_MOSI) && (scl == MB_SCK) )
-		;
+		mux_setting	= kPORT_MuxAlt3;
 	else
 		panic( "FRDM-MCXA153 supports I3C_SDA/I3C_SCL, I2C_SDA(D18)/I2C_SCL(D19), MB_SDA/MB_SCL or MB_MOSI/MB_SCK pins for I2C" );
 
-	constexpr int	mux_setting	= kPORT_MuxAlt3;
 	unit_base	= EXAMPLE_I2C_MASTER;
 	
 	RESET_ReleasePeripheralReset( kLPI2C0_RST_SHIFT_RSTn );
@@ -128,14 +207,22 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 #elif	CPU_MCXC444VLH
 	int	mux_setting	= kPORT_MuxAlt2;
 
+	//	ALT values from Zephyr's MCXC444VLH-pinctrl.h. D18/D19 and A4/A5 both
+	//	reach I2C1, so they can't be two buses at once. PTE25/PTE24 is I2C0,
+	//	the on-board accelerometer's bus (Wire1), which no header pin reaches.
+	unit_base	= I2C1;
+
 	if ( (sda == D18) && (scl == D19) )
 		mux_setting	= kPORT_MuxAlt6;
 	else if ( (sda == A4) && (scl == A5) )
 		mux_setting	= kPORT_MuxAlt2;
+	else if ( (sda == PTE25) && (scl == PTE24) )
+	{
+		mux_setting	= kPORT_MuxAlt5;
+		unit_base	= I2C0;
+	}
 	else
-		panic( "FRDM-MCXA153 supports I3C_SDA/I3C_SCL, I2C_SDA(D18)/I2C_SCL(D19), MB_SDA/MB_SCL or MB_MOSI/MB_SCK pins for I2C" );
-
-	unit_base	= I2C1;
+		panic( "FRDM-MCXC444 supports D18/D19, A4/A5 (both I2C1) or the on-board sensor's PTE25/PTE24 (I2C0) for I2C" );
 	repeated_start_required_flag	= false;
 #else
 	#error Not supported CPU
@@ -147,7 +234,10 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 	I2C_MasterInit( unit_base, &masterConfig, I2C_MASTER_CLOCK_FREQUENCY );
 #else
 	LPI2C_MasterGetDefaultConfig( &masterConfig );
-	LPI2C_MasterInit( unit_base, &masterConfig, LPI2C_MASTER_CLOCK_FREQUENCY );
+	LPI2C_MasterInit( unit_base, &masterConfig, lpi2c_source_clock( unit_base ) );
+#endif
+#if	CPU_MCXN236VDF
+	flexcomm_keep_shared( LPI2C_GetInstance( unit_base ) );
 #endif
 	
 //	frequency( I2C_FREQ );
@@ -160,21 +250,160 @@ I2C::I2C( int sda, int scl, bool no_hw ) : Obj( true ), _sda( sda ), _scl( scl )
 
 I2C::~I2C()
 {
+	/*
+	 *  no_hw=true (the I3C constructor's delegation path) skips hardware
+	 *  init entirely, leaving unit_base uninitialized -- deinit-ing it here
+	 *  would dereference garbage. I3C::~I3C() already deinits its own
+	 *  peripheral (I3C_MasterDeinit), so there's nothing for this base
+	 *  destructor to clean up in that case.
+	 */
+	if ( _no_hw )
+		return;
+
 #if	CPU_MCXC444VLH
 	I2C_MasterDeinit( unit_base );
-#else
+#elif	CPU_MCXN236VDF
+	//	LPI2C_MasterDeinit() resets the whole FlexComm, and FlexComm2 is
+	//	Serial1's LPUART2 too. Reset the LPI2C master alone there.
+	if ( LPI2C2 == unit_base )
+		LPI2C_MasterReset( unit_base );
+	else
+		LPI2C_MasterDeinit( unit_base );
+#elif	CPU_MCXA153VLH || CPU_MCXA156VLL || CPU_MCXN947VDF
 	LPI2C_MasterDeinit( unit_base );
+#else
+#error "I2C::~I2C(): no deinit for this chip"
 #endif
 }
 
 void I2C::frequency( uint32_t frequency )
 {
 #if	CPU_MCXC444VLH
-	I2C_MasterSetBaudRate( unit_base, I2C_MASTER_CLOCK_FREQUENCY, frequency );
+	//	( base, baud rate, source clock ): with the two swapped, the SDK picked
+	//	its smallest divider and SCL ran at 2.4MHz whatever was asked
+	I2C_MasterSetBaudRate( unit_base, frequency, I2C_MASTER_CLOCK_FREQUENCY );
 #else
-	LPI2C_MasterSetBaudRate( unit_base, LPI2C_MASTER_CLOCK_FREQUENCY, frequency );
+	/*	Clear the glitch filters before handing over to the SDK.
+	 *
+	 *	LPI2C_MasterSetBaudRate() only ever raises FILTSDA, never lowers it:
+	 *	the block that writes it is guarded by
+	 *	  (sourceClock / baudRate / 20) > (divider + 2)
+	 *	which is false for fast baud rates, so switching *down* in period
+	 *	(i.e. up in speed) skips the write entirely and leaves whatever a
+	 *	previous, slower setting left behind.
+	 *
+	 *	Worked example on this hardware (12MHz source), all three values
+	 *	confirmed by reading MCFGR2 back on a real board:
+	 *	  begin() @100kHz -> 12e6/100e3/20 = 6  > 3  -> FILTSDA = 6-1-2  = 3
+	 *	  setClock(10kHz) -> 12e6/10e3/20  = 60 > 18 -> FILTSDA = 60-16-2 = 42,
+	 *	                     truncated to the 4-bit field as 42 & 0xF = 10
+	 *	  setClock(400kHz)-> 12e6/400e3/20 = 1  > 3? no -> skipped, stays 10
+	 *
+	 *	FILTSDA 10 at 12MHz is ~833ns of SDA filtering, against a 2.5us bit
+	 *	time at 400kHz. On a logic analyzer that showed up as the address
+	 *	phase being cut short after three SCL pulses and restarted with a
+	 *	repeated START, over and over -- and, before the STOP handling above
+	 *	was fixed, as an outright hang. It only ever reproduced when a fast
+	 *	rate followed a slow one, which is exactly what this guard predicts.
+	 *
+	 *	Zeroing both filter fields first makes each call recompute from a
+	 *	clean slate: the SDK then writes the right value when it wants one,
+	 *	and leaving it at 0 when it skips the block is the intended "no
+	 *	extra filtering needed at this speed" result rather than stale state.
+	 *
+	 *	MCFGR2 is only writable with the module disabled -- the SDK writes it
+	 *	inside its own disable/restore window for the same reason -- so do
+	 *	the same here, and hand the module back in the state it was found in
+	 *	so LPI2C_MasterSetBaudRate()'s own save/restore still sees the truth.
+	 */
+	bool	was_enabled	= ( unit_base->MCR & LPI2C_MCR_MEN_MASK ) != 0U;
+
+	LPI2C_MasterEnable( unit_base, false );
+	unit_base->MCFGR2	&= ~( LPI2C_MCFGR2_FILTSDA_MASK | LPI2C_MCFGR2_FILTSCL_MASK );
+	LPI2C_MasterEnable( unit_base, was_enabled );
+
+	LPI2C_MasterSetBaudRate( unit_base, lpi2c_source_clock( unit_base ), frequency );
+
+	//	PINLOW counts in prescaled cycles, and the baud rate may just have
+	//	picked a different prescaler.
+	apply_pin_low_timeout();
 #endif
 }
+
+#ifndef	CPU_MCXC444VLH
+void I2C::pin_low_timeout( uint32_t timeout_us )
+{
+	if ( _no_hw )
+		return;
+
+	_pin_low_timeout_us	= timeout_us;
+	apply_pin_low_timeout();
+}
+
+void I2C::apply_pin_low_timeout( void )
+{
+	uint32_t	prescale	= ( unit_base->MCFGR1 & LPI2C_MCFGR1_PRESCALE_MASK ) >> LPI2C_MCFGR1_PRESCALE_SHIFT;
+	uint64_t	unit		= ( 256ULL << prescale ) * 1000000ULL;	// functional-clock cycles per count, times 1e6 for us
+	uint32_t	max_count	= LPI2C_MCFGR3_PINLOW_MASK >> LPI2C_MCFGR3_PINLOW_SHIFT;
+	uint32_t	count		= 0;
+
+	if ( _pin_low_timeout_us )
+	{
+		uint64_t	c	= ( (uint64_t)_pin_low_timeout_us * lpi2c_source_clock( unit_base ) + unit - 1 ) / unit;
+		count	= ( c < 1 ) ? 1 : ( c > max_count ) ? max_count : (uint32_t)c;
+	}
+	else if ( !( unit_base->MCFGR3 & LPI2C_MCFGR3_PINLOW_MASK ) )
+		return;		// never enabled: leave the module untouched
+
+	//	TIMECFG=1 watches SDA as well as SCL: a target that lost sync and
+	//	holds SDA low leaves SCL idle-high, so SCL alone would never trip.
+	//
+	//	BUSIDLE goes with it. A line held low when no transfer is running --
+	//	including right after a timeout, while the target still holds it --
+	//	latches the bus-busy flag, and without BUSIDLE only a STOP clears it:
+	//	releasing SCL alone is not a STOP, so every later transfer failed with
+	//	kStatus_LPI2C_Busy, reset or not. With it, both lines staying high for
+	//	BUSIDLE prescaled cycles counts as idle. The maximum is used: at every
+	//	rate it is still longer than one SCL period, and only a bus-wide pause
+	//	this long, not a gap within our own transfer, has any effect.
+	//
+	//	MCFGR1/2/3 are only writable with the master disabled.
+	uint32_t	idle		= count ? ( LPI2C_MCFGR2_BUSIDLE_MASK >> LPI2C_MCFGR2_BUSIDLE_SHIFT ) : 0;
+	bool		was_enabled	= ( unit_base->MCR & LPI2C_MCR_MEN_MASK ) != 0U;
+
+	LPI2C_MasterEnable( unit_base, false );
+	unit_base->MCFGR1	|= LPI2C_MCFGR1_TIMECFG_MASK;
+	unit_base->MCFGR2	= ( unit_base->MCFGR2 & ~LPI2C_MCFGR2_BUSIDLE_MASK ) | LPI2C_MCFGR2_BUSIDLE( idle );
+	unit_base->MCFGR3	= ( unit_base->MCFGR3 & ~LPI2C_MCFGR3_PINLOW_MASK ) | LPI2C_MCFGR3_PINLOW( count );
+	LPI2C_MasterEnable( unit_base, was_enabled );
+
+	wait_bus_idle();
+}
+
+void I2C::wait_bus_idle( void )
+{
+	if ( _no_hw || !( unit_base->MCR & LPI2C_MCR_MEN_MASK ) )
+		return;
+
+	uint32_t	idle	= ( unit_base->MCFGR2 & LPI2C_MCFGR2_BUSIDLE_MASK ) >> LPI2C_MCFGR2_BUSIDLE_SHIFT;
+
+	if ( !idle )
+		return;
+
+	//	Both on hardware: without this, `begin(); setWireTimeout(...);` and
+	//	a transfer straight after failed with Busy (BBF set), and the same
+	//	transfer 1ms later went through. The period is counted as prescaled
+	//	here, the longer reading, so the wait never falls short of it.
+	uint32_t	prescale	= ( unit_base->MCFGR1 & LPI2C_MCFGR1_PRESCALE_MASK ) >> LPI2C_MCFGR1_PRESCALE_SHIFT;
+	uint32_t	limit_us	= (uint32_t)( ( ( (uint64_t)idle << prescale ) * 1000000ULL ) / lpi2c_source_clock( unit_base ) ) + 2;
+
+	//	A plain wait, not a poll of BBF: BBF may not be set yet this soon
+	//	after the enable, and a bus that stays busy past the period is held
+	//	by someone, which waiting longer here won't change -- that includes
+	//	the reset after a timeout, which runs while the line is still held.
+	wait_us( limit_us );
+}
+#endif
 
 void I2C::pullup( bool enable )
 {
@@ -207,51 +436,315 @@ status_t I2C::read( uint8_t address, uint8_t *dp, int length, bool stop )
 }
 
 #if	CPU_MCXC444VLH
+/*	The Kinetis I2C transfer, written here rather than run through the
+ *	SDK's I2C_MasterTransferBlocking(): that waits for each flag with no
+ *	limit (I2C_RETRY_TIMES is 0) and never looks at the SCL low timeout, so
+ *	a target holding SCL stopped the sketch for good.
+ *
+ *	A data byte the target NAKs fails the transfer, the last one included,
+ *	as on the LPI2C boards (the SDK let the last one pass). On an error the
+ *	master lets go of the bus (a STOP once the lines are free), and the next
+ *	transfer starts with a START, not a repeated START.
+ */
+namespace {
+
+constexpr uint8_t	SMB_W1C	= I2C_SMB_SLTF_MASK | I2C_SMB_SHTF2_MASK;	// write-1-to-clear
+
+inline bool scl_timed_out( I2C_Type *base )
+{
+	return ( base->SMB & I2C_SMB_SLTF_MASK ) != 0U;
+}
+
+//	Waits for the byte's interrupt flag, or the SCL low timeout. The
+//	timeout sets IICIF too (reference manual, the I2C interrupt summary), so
+//	SLTF is checked again once IICIF is up: taken for a finished byte, the
+//	transfer went on, and once came back as a success
+status_t wait_byte( I2C_Type *base )
+{
+	while ( !( base->S & I2C_S_IICIF_MASK ) )
+	{
+		if ( scl_timed_out( base ) )
+			return kStatus_I2C_Timeout;
+	}
+
+	if ( scl_timed_out( base ) )
+		return kStatus_I2C_Timeout;
+
+	base->S	= I2C_S_IICIF_MASK;
+
+	if ( base->S & I2C_S_ARBL_MASK )
+	{
+		base->S	= I2C_S_ARBL_MASK;
+		return kStatus_I2C_ArbitrationLost;
+	}
+
+	return kStatus_Success;
+}
+
+//	Gives up the bus: clearing MST makes the STOP. Waits a while for the
+//	bus to go idle, but not for ever: a line still held keeps it busy
+void stop( I2C_Type *base )
+{
+	base->C1	&= (uint8_t)~( I2C_C1_MST_MASK | I2C_C1_TX_MASK | I2C_C1_TXAK_MASK );
+
+	for ( int i = 0; i < 20000 && ( base->S & I2C_S_BUSY_MASK ); i++ )
+		;
+}
+
+}	// namespace
+
+void I2C::pin_low_timeout( uint32_t timeout_us )
+{
+	if ( _no_hw )
+		return;
+
+	_pin_low_timeout_us	= timeout_us;
+
+	//	TCKSEL = 0: the counter runs at the module clock / 64
+	uint32_t	per_us	= I2C_MASTER_CLOCK_FREQUENCY / 64u;		// counts a second
+	uint32_t	count	= 0;
+
+	if ( timeout_us )
+	{
+		uint64_t	c	= ( (uint64_t)timeout_us * per_us + 999999ULL ) / 1000000ULL;
+		count	= ( c < 1 ) ? 1 : ( c > 0xFFFFu ) ? 0xFFFFu : (uint32_t)c;
+	}
+
+	unit_base->SMB	= unit_base->SMB & (uint8_t)~( SMB_W1C | I2C_SMB_TCKSEL_MASK );
+	unit_base->SLTH	= (uint8_t)( count >> 8 );
+	unit_base->SLTL	= (uint8_t)count;
+	unit_base->SMB	= ( unit_base->SMB & (uint8_t)~SMB_W1C ) | I2C_SMB_SLTF_MASK;	// clear a stale flag
+}
+
+status_t I2C::transfer_kinetis( uint8_t address, bool read, uint8_t *dp, int length, bool stop_after )
+{
+	I2C_Type	*base		= unit_base;
+	bool		repeated	= repeated_start_required_flag;
+	status_t	r			= kStatus_Success;
+
+	repeated_start_required_flag	= false;
+
+	base->SMB	= ( base->SMB & (uint8_t)~SMB_W1C ) | I2C_SMB_SLTF_MASK;
+	base->S		= I2C_S_IICIF_MASK | I2C_S_ARBL_MASK;
+
+	if ( repeated )
+	{
+		//	MULT = 0 while RSTA is set, as the SDK's I2C_MasterRepeatedStart()
+		//	does, then a moment before the address goes out
+		uint8_t	f	= base->F;
+
+		base->F		= f & (uint8_t)~I2C_F_MULT_MASK;
+		base->C1	|= I2C_C1_RSTA_MASK | I2C_C1_TX_MASK;
+		base->F		= f;
+		for ( int i = 0; i < 6; i++ )
+			__NOP();
+	}
+	else
+	{
+		//	A line held low, or another master, keeps the bus busy: refuse
+		if ( base->S & I2C_S_BUSY_MASK )
+			return kStatus_I2C_Busy;
+
+		base->C1	|= I2C_C1_MST_MASK | I2C_C1_TX_MASK;
+	}
+
+	//	Double-buffered: the data register takes the address once empty
+	while ( !( base->S2 & I2C_S2_EMPTY_MASK ) )
+	{
+		if ( scl_timed_out( base ) )
+		{
+			r	= kStatus_I2C_Timeout;
+			goto fail;
+		}
+	}
+
+	base->D	= (uint8_t)( ( address << 1 ) | ( read ? 1u : 0u ) );
+
+	if ( ( r = wait_byte( base ) ) != kStatus_Success )
+		goto fail;
+
+	if ( base->S & I2C_S_RXAK_MASK )
+	{
+		r	= kStatus_I2C_Addr_Nak;
+		goto fail;
+	}
+
+	if ( !read )
+	{
+		for ( int i = 0; i < length; i++ )
+		{
+			base->D	= dp[ i ];
+
+			if ( ( r = wait_byte( base ) ) != kStatus_Success )
+				goto fail;
+
+			if ( base->S & I2C_S_RXAK_MASK )
+			{
+				r	= kStatus_I2C_Nak;
+				goto fail;
+			}
+		}
+
+		if ( stop_after )
+			stop( base );
+		else
+			repeated_start_required_flag	= true;
+
+		return kStatus_Success;
+	}
+
+	if ( length <= 0 )
+	{
+		stop( base );
+		return kStatus_Success;
+	}
+
+	//	Receive. The byte the master NAKs, the last, needs TXAK set before
+	//	it comes in; reading D starts the next byte, so the STOP goes before
+	//	the last read
+	base->C1	&= (uint8_t)~( I2C_C1_TX_MASK | I2C_C1_TXAK_MASK );
+	if ( length == 1 )
+		base->C1	|= I2C_C1_TXAK_MASK;
+	(void)base->D;		// the dummy read that clocks in the first byte
+
+	for ( int i = 0; i < length; i++ )
+	{
+		if ( ( r = wait_byte( base ) ) != kStatus_Success )
+			goto fail;
+
+		if ( i == length - 1 )
+		{
+			if ( stop_after )
+				stop( base );
+			else
+			{
+				base->C1	|= I2C_C1_TX_MASK;	// no further clocks
+				repeated_start_required_flag	= true;
+			}
+		}
+		else if ( i == length - 2 )
+			base->C1	|= I2C_C1_TXAK_MASK;
+
+		dp[ i ]	= base->D;
+	}
+
+	return kStatus_Success;
+
+fail:
+	if ( kStatus_I2C_Timeout == r )
+	{
+		//	Let go of the bus without waiting for it to go idle: the line is
+		//	still held, and waiting added ~4ms to every timeout. The STOP
+		//	goes out once it is released
+		base->SMB	= ( base->SMB & (uint8_t)~SMB_W1C ) | I2C_SMB_SLTF_MASK;
+		base->S		= I2C_S_IICIF_MASK;
+		base->C1	&= (uint8_t)~( I2C_C1_MST_MASK | I2C_C1_TX_MASK | I2C_C1_TXAK_MASK );
+	}
+	else if ( kStatus_I2C_ArbitrationLost == r )	// no longer the master
+		base->C1	&= (uint8_t)~( I2C_C1_MST_MASK | I2C_C1_TX_MASK | I2C_C1_TXAK_MASK );
+	else
+		stop( base );
+
+	return r;
+}
+
+//	A target armed on this module (Wire's begin(address)) runs from the
+//	I2C interrupt, which polls the same IICIF: it is off for the transfer.
+//	So is the target's START/STOP detection (FLT[SSIE]): it sets IICIF for
+//	the START of our own transfer too, and wait_byte() took that for the
+//	address byte done, before it was sent. The START/STOP flags of our own
+//	transfer are cleared when it is put back
 status_t I2C::write_core( uint8_t address, const uint8_t *dp, int length, bool stop )
 {
-	i2c_master_transfer_t	masterXfer;
-	
-	memset( &masterXfer, 0, sizeof( masterXfer ) );
+	uint8_t		ie		= unit_base->C1 & I2C_C1_IICIE_MASK;
+	uint8_t		ssie	= unit_base->FLT & I2C_FLT_SSIE_MASK;
 
-	masterXfer.slaveAddress   = address;
-	masterXfer.direction      = kI2C_Write;
-	masterXfer.subaddress     = 0;
-	masterXfer.subaddressSize = 0;
-	masterXfer.data           = const_cast<uint8_t *>( dp );
-	masterXfer.dataSize       = length;
-	masterXfer.flags          = kI2C_TransferDefaultFlag;
+	unit_base->C1	&= (uint8_t)~I2C_C1_IICIE_MASK;
+	unit_base->FLT	&= (uint8_t)~( I2C_FLT_STOPF_MASK | I2C_FLT_STARTF_MASK | I2C_FLT_SSIE_MASK );
+	status_t	r	= transfer_kinetis( address, false, const_cast<uint8_t *>( dp ), length, stop );
+	unit_base->FLT	|= ssie;	// writing back the flags that are set clears them
+	unit_base->C1	|= ie;
 
-	masterXfer.flags	|= !stop						? kI2C_TransferNoStopFlag			: 0x0;
-	masterXfer.flags	|= repeated_start_required_flag	? kI2C_TransferRepeatedStartFlag	: 0x0;
-
-	repeated_start_required_flag	= !stop;
-
-	return I2C_MasterTransferBlocking( unit_base, &masterXfer );
+	return r;
 }
 
 status_t I2C::read_core( uint8_t address, uint8_t *dp, int length, bool stop )
 {
-	i2c_master_transfer_t	masterXfer;
-	
-	memset( &masterXfer, 0, sizeof( masterXfer ) );
+	uint8_t		ie		= unit_base->C1 & I2C_C1_IICIE_MASK;
+	uint8_t		ssie	= unit_base->FLT & I2C_FLT_SSIE_MASK;
 
-	masterXfer.slaveAddress   = address;
-	masterXfer.direction      = kI2C_Read;
-	masterXfer.subaddress     = 0;
-	masterXfer.subaddressSize = 0;
-	masterXfer.data           = dp;
-	masterXfer.dataSize       = length;
-	masterXfer.flags          = kI2C_TransferDefaultFlag;
+	unit_base->C1	&= (uint8_t)~I2C_C1_IICIE_MASK;
+	unit_base->FLT	&= (uint8_t)~( I2C_FLT_STOPF_MASK | I2C_FLT_STARTF_MASK | I2C_FLT_SSIE_MASK );
+	status_t	r	= transfer_kinetis( address, true, dp, length, stop );
+	unit_base->FLT	|= ssie;	// writing back the flags that are set clears them
+	unit_base->C1	|= ie;
 
-	masterXfer.flags	|= !stop						? kI2C_TransferNoStopFlag			: 0x0;
-	masterXfer.flags	|= repeated_start_required_flag	? kI2C_TransferRepeatedStartFlag	: 0x0;
-
-	repeated_start_required_flag	= !stop;
-
-	return I2C_MasterTransferBlocking( unit_base, &masterXfer );
+	return r;
 }
 #else
+/*	Emit a STOP, working around LPI2C_MasterStop()'s own error handling.
+ *
+ *	LPI2C_MasterStop() opens with LPI2C_MasterWaitForTxReady(), which runs
+ *	LPI2C_MasterCheckAndClearError(). When the target NAKed, that check
+ *	consumes the NAK and makes STOP return kStatus_LPI2C_Nak *before* it
+ *	ever writes the stop command -- so the transaction is never terminated
+ *	on the bus.
+ *
+ *	This is not a rare corner: writing one byte to an absent address, the
+ *	NAK is not yet visible at either of the earlier checks in write_core()
+ *	(LPI2C_MasterStart() only queues the address, the FIFO-drain loop only
+ *	waits for it to leave the FIFO, and LPI2C_MasterSend() can still place
+ *	the data byte before the bus has answered), so LPI2C_MasterStop() is
+ *	where it consistently surfaces. Measured on real hardware: 1500 of 1500
+ *	probe transfers, with a logic analyzer showing each transaction's STOP
+ *	missing and only appearing once the *next* transaction started.
+ *
+ *	CheckAndClearError has cleared the flag by the time it returns, so a
+ *	second call goes through and actually emits the STOP. Only retried for
+ *	NAK: the other error flags (arbitration lost, pin-low timeout) mean the
+ *	bus itself is in trouble, and LPI2C_MasterStop() has no timeout of its
+ *	own to fall back on (I2C_RETRY_TIMES is 0), so retrying those could
+ *	block forever. The caller still gets the original status.
+ */
+static status_t stop_with_nak_recovery( LPI2C_Type *unit_base )
+{
+	status_t	r	= LPI2C_MasterStop( unit_base );
+
+	if ( r == kStatus_LPI2C_Nak )
+		LPI2C_MasterStop( unit_base );
+
+	return r;
+}
+
+/*	End a transfer that a pin-low timeout cut short.
+ *
+ *	LPI2C_MasterCheckAndClearError() flushes the FIFOs on the way out, so once
+ *	the target lets go of the line, the master finishes the byte it was in
+ *	and then stalls -- holding the bus itself, waiting for a command that
+ *	never comes. Seen on hardware as every later transfer timing out at once
+ *	(MSR: master busy, pin-low timeout) long after the target had released
+ *	the bus. A queued STOP, not waited for, lets it finish cleanly whenever
+ *	that happens.
+ */
+static status_t stop_after_timeout( LPI2C_Type *unit_base, status_t r )
+{
+	if ( r == kStatus_LPI2C_PinLowTimeout )
+		unit_base->MTDR	= LPI2C_MTDR_CMD( 2U );		// STOP
+
+	return r;
+}
+
 status_t I2C::write_core( uint8_t address, const uint8_t *dp, int length, bool stop )
+{
+	return stop_after_timeout( unit_base, write_lpi2c( address, dp, length, stop ) );
+}
+
+status_t I2C::read_core( uint8_t address, uint8_t *dp, int length, bool stop )
+{
+	return stop_after_timeout( unit_base, read_lpi2c( address, dp, length, stop ) );
+}
+
+status_t I2C::write_lpi2c( uint8_t address, const uint8_t *dp, int length, bool stop )
 {
 	status_t reVal        = kStatus_Fail;
 	size_t txCount        = 0xFFU;
@@ -261,11 +754,28 @@ status_t I2C::write_core( uint8_t address, const uint8_t *dp, int length, bool s
 		LPI2C_MasterGetFifoCounts( unit_base, NULL, &txCount );
 		while ( txCount )
 		{
+			//	The FIFO never drains while a target holds the bus, so this
+			//	is where a stuck bus would otherwise spin forever.
+			uint32_t	status	= LPI2C_MasterGetStatusFlags( unit_base );
+
+			if ( status & kLPI2C_MasterPinLowTimeoutFlag )
+				return LPI2C_MasterCheckAndClearError( unit_base, status );
+
 			LPI2C_MasterGetFifoCounts( unit_base, NULL, &txCount );
 		}
 
-		if ( LPI2C_MasterGetStatusFlags( unit_base ) & kLPI2C_MasterNackDetectFlag )
+		uint32_t	status	= LPI2C_MasterGetStatusFlags( unit_base );
+
+		if ( status & kLPI2C_MasterNackDetectFlag )
 		{
+			//	Address-phase NAK, on the occasions it is already visible
+			//	here (on a slow enough SCL it can be). Clear the error first:
+			//	leaving the flag set would make the STOP below bail out without
+			//	emitting anything -- see stop_with_nak_recovery() above, which
+			//	is the same trap reached from the other direction.
+			(void)LPI2C_MasterCheckAndClearError( unit_base, status );
+			LPI2C_MasterStop( unit_base );
+
 			return kStatus_LPI2C_Nak;
 		}
 
@@ -281,7 +791,7 @@ status_t I2C::write_core( uint8_t address, const uint8_t *dp, int length, bool s
 
 		if ( stop )
 		{
-			reVal = LPI2C_MasterStop( unit_base );
+			reVal = stop_with_nak_recovery( unit_base );
 			if ( reVal != kStatus_Success )
 			{
 				return reVal;
@@ -291,10 +801,10 @@ status_t I2C::write_core( uint8_t address, const uint8_t *dp, int length, bool s
 	return reVal;
 }
 
-status_t I2C::read_core( uint8_t address, uint8_t *dp, int length, bool stop )
+status_t I2C::read_lpi2c( uint8_t address, uint8_t *dp, int length, bool stop )
 {
 	status_t reVal        = kStatus_Fail;
-		
+
 	if ( kStatus_Success == (reVal = LPI2C_MasterRepeatedStart( unit_base, address, kLPI2C_Read )) )
 	{
 		reVal = LPI2C_MasterReceive( unit_base,  (uint8_t *)dp, length );
@@ -307,10 +817,13 @@ status_t I2C::read_core( uint8_t address, uint8_t *dp, int length, bool stop )
 			return reVal;
 		}
 
-		reVal = LPI2C_MasterStop( unit_base );
-		if ( reVal != kStatus_Success )
+		if ( stop )
 		{
-			return reVal;
+			reVal = stop_with_nak_recovery( unit_base );
+			if ( reVal != kStatus_Success )
+			{
+				return reVal;
+			}
 		}
 	}
 	return reVal;
@@ -399,8 +912,12 @@ bool I2C::ping( uint8_t addr )
 
 void I2C::scan( uint8_t start, uint8_t last, bool *result )
 {
+	// result[] is always indexed by the full address (0..last), even
+	// though only [start, last] is actually pinged -- addresses below
+	// start are marked "not found" rather than left uninitialized, so
+	// scan(start, last)'s display loop below can print the whole table.
 	for ( uint8_t i = 0; i <= last; i++ )
-		result[i]	= ping( i );
+		result[i]	= ( i >= start ) ? ping( i ) : false;
 }
 
 void I2C::scan( uint8_t start, uint8_t last )
@@ -409,11 +926,14 @@ void I2C::scan( uint8_t start, uint8_t last )
 
 	scan( start, last, result );
 
-	printf( "\r\nI2C scan result (in range of 0x00 ~ 0x%02X)\r\n   ", last );
+	printf( "\r\nI2C scan result (in range of 0x%02X ~ 0x%02X)\r\n   ", start, last );
 	for ( uint8_t x = 0; x < 16; x++ )
 		printf( " x%01X", x );
-	
-	for ( uint8_t i = 0; i < last; i++ )
+
+	// <= last, not < last -- last is the last address to include (see the
+	// scan(uint8_t last) overload's doc comment), so excluding it here
+	// silently dropped the requested upper-bound address from the table.
+	for ( uint8_t i = 0; i <= last; i++ )
 	{
 		if ( !( i % 16) )
 			printf( "\r\n%01Xx:", i / 16 );
@@ -423,7 +943,7 @@ void I2C::scan( uint8_t start, uint8_t last )
 		else
 			printf( " --" );
 	}
-	printf( "\r\n\r\n" );			
+	printf( "\r\n\r\n" );
 }
 
 void I2C::scan( uint8_t last )

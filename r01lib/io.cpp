@@ -4,12 +4,14 @@
  *  Released under the MIT license License
  */
 
+#include	<cstdio>
 #include	"fsl_common.h"
 #include	"fsl_gpio.h"
 #include	"fsl_port.h"
 #include	"pin_mux.h"
 #include	"mcu.h"
 #include	"io.h"
+#include	"pin_registry.h"
 
 #define	DISABLED_GPIO		-1
 #define	DISABLED_PIN		0xFF
@@ -485,12 +487,34 @@ DigitalInOut::DigitalInOut( uint8_t pin_num, bool direction, bool v, int pin_mod
 	gpio_pin	= pins[ _pn ].pin;
 	
 	GPIO_PinInit( gpio_n, gpio_pin, &led_config );
+#if defined( CPU_MCXC444VLH )
+	//	On Kinetis a pin out of reset is ALT0, disabled (analog), and GPIO
+	//	is ALT1: without this the pin neither drives nor reads. The MCX
+	//	chips come out of reset as GPIO (ALT0 there)
+	PORT_SetPinMux( port_n, gpio_pin, kPORT_MuxAsGpio );
+#endif
 	mode( pin_mode );
-	
+#if defined( CPU_MCXA153VLH ) || defined( CPU_MCXN947VDF ) || defined( CPU_MCXA156VLL ) || defined( CPU_MCXN236VDF )
+	//	Without the input buffer (PCR.IBE) digitalRead() reads 0, and so
+	//	does every peripheral reading its pin through here: LPI2C's SDA/SCL,
+	//	LPSPI's SDI, interrupts. AnalogIn turns it off on its pins, on every
+	//	board, so a pin used by analogRead() needs it back. And on
+	//	MCXA156 every pin's buffer is off out of reset (seen on hardware for
+	//	all but P0_6 and P0_2), with the SDK's pin_mux.c used there turning
+	//	it on only for the debug UART. It is turned on again in pin_mux(),
+	//	which pinMode() calls.
+	input_buffer( true );
+#endif
+
 	value( (bool)_value );
+
+	pin_registry_note( this, "GPIO", &_pn, 1, kPORT_MuxAsGpio );
 }
 
-DigitalInOut::~DigitalInOut(){}
+DigitalInOut::~DigitalInOut()
+{
+	pin_registry_forget( this );
+}
 
 void DigitalInOut::value( bool value )
 {
@@ -535,6 +559,32 @@ void DigitalInOut::direction( bool dir )
 void DigitalInOut::pin_mux( int mux )
 {
 	PORT_SetPinMux( port_n, gpio_pin, (port_mux_t)mux );
+#if defined( CPU_MCXA153VLH ) || defined( CPU_MCXN947VDF ) || defined( CPU_MCXA156VLL ) || defined( CPU_MCXN236VDF )
+	input_buffer( true );	//	see the constructor
+#endif
+
+	// Keep the pin registry's "wanted ALT" in sync. The constructor's own
+	// registration call (wanted_mux=0) only reflects reality for plain
+	// pinMode() GPIO pins that never get re-muxed afterward -- I2C/I3C's
+	// _sda/_scl and SPI's chip_select are also just DigitalInOut members,
+	// but their owning class immediately calls pin_mux() with the real
+	// peripheral ALT right after construction, which the constructor's
+	// snapshot can't see. pin_registry_note() reuses this object's
+	// existing slot (same `this`) rather than adding a second one, so
+	// this just updates the recorded expectation to match.
+	pin_registry_note( this, "GPIO", &_pn, 1, (uint8_t)mux );
+}
+
+void DigitalInOut::input_buffer( bool enable )
+{
+#ifdef	PORT_PCR_IBE_MASK
+	if ( enable )
+		port_n->PCR[ gpio_pin ] |= PORT_PCR_IBE_MASK;
+	else
+		port_n->PCR[ gpio_pin ] &= ~PORT_PCR_IBE_MASK;
+#else
+	(void)enable;	// Kinetis PORT (FRDM-MCXC444) has no input buffer switch
+#endif
 }
 
 void DigitalInOut::mode( int pin_mode )
@@ -577,4 +627,58 @@ DigitalIn::DigitalIn( uint8_t pin_num, int pin_mode )
 }
 
 DigitalIn::~DigitalIn() {}
+
+PinPcrInfo pin_registry_read_pcr( uint8_t raw_pin )
+{
+	PinPcrInfo	info	= { 0xFF, false, false, 0 };
+
+	if ( raw_pin >= sizeof( pins ) / sizeof( pins[ 0 ] ) )
+		return info;
+
+	if ( -1 == pins[ raw_pin ].base )
+		return info;
+
+	PORT_Type	*port	= port_type[ pins[ raw_pin ].base ];
+	uint32_t	pcr		= PORT_GetPinMode( port, pins[ raw_pin ].pin );
+
+	info.mux	= (uint8_t)( ( pcr & PORT_PCR_MUX_MASK ) >> PORT_PCR_MUX_SHIFT );
+#ifdef	PORT_PCR_IBE_MASK
+	info.ibe	= 0 != ( pcr & PORT_PCR_IBE_MASK );
+#else
+	info.ibe	= 0 != info.mux;	// Kinetis: digital input is off only in analog mode (ALT0)
+#endif
+
+#ifndef	CPU_MCXC444VLH
+	info.ode	= 0 != ( pcr & PORT_PCR_ODE_MASK );
+#endif
+
+	// PE (pull enable) gates whether PS (pull select: 0=down, 1=up) means
+	// anything -- matches PORT_SetPinPullUpDown()'s own field usage (that
+	// function's enable/logic-vs-PE/PS assignment was briefly swapped
+	// during this tool's own development, confirmed and fixed via real
+	// hardware: INPUT_PULLDOWN was silently leaving pins with no pull
+	// enabled at all -- see PORT_SetPinPullUpDown()'s comment).
+	if ( pcr & PORT_PCR_PE_MASK )
+		info.pull	= ( pcr & PORT_PCR_PS_MASK ) ? 2 : 1;
+
+	return info;
+}
+
+const char *pin_registry_pin_name( uint8_t raw_pin, char *buf, uint8_t buf_size )
+{
+	if ( (raw_pin >= sizeof( pins ) / sizeof( pins[ 0 ] )) || (-1 == pins[ raw_pin ].base) )
+	{
+		snprintf( buf, buf_size, "?%u", raw_pin );
+		return buf;
+	}
+
+#if defined( CPU_MCXC444VLH )
+	//	Kinetis names its ports by letter: PTA1, PTE25
+	snprintf( buf, buf_size, "PT%c%lu", 'A' + pins[ raw_pin ].base, pins[ raw_pin ].pin );
+#else
+	snprintf( buf, buf_size, "P%d_%lu", pins[ raw_pin ].base, pins[ raw_pin ].pin );
+#endif
+
+	return buf;
+}
 

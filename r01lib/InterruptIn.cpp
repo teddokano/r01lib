@@ -19,7 +19,7 @@ extern "C" {
 #include	"InterruptIn.h"
 #include	"mcu.h"
 
-#ifdef	CPU_MCXN947VDF
+#if defined( CPU_MCXN947VDF ) || defined( CPU_MCXN236VDF )
 	#define		N_GPIO		6
 	#define		GPIO_BITS	32
 	static	GPIO_Type	*gpio_ptr[]	= GPIO_BASE_PTRS;
@@ -30,19 +30,32 @@ extern "C" {
 	#define		GPIO_BITS	24
 	static	GPIO_Type	*gpio_ptr[]	= { GPIOA, GPIOC, GPIOD };
 	
-#else // CPU_MCXN947VDF
+#elif	CPU_MCXA153VLH
 	#define		N_GPIO		4
 	#define		GPIO_BITS	32
 	static	GPIO_Type	*gpio_ptr[]	= GPIO_BASE_PTRS;
 	static	IRQn_Type	irqs[]		= GPIO_IRQS;
-#endif //CPU_MCXN947VDF
+
+#elif	CPU_MCXA156VLL
+	#define		N_GPIO		5
+	#define		GPIO_BITS	32
+	static	GPIO_Type	*gpio_ptr[]	= GPIO_BASE_PTRS;
+	static	IRQn_Type	irqs[]		= GPIO_IRQS;
+
+#else
+	#error "InterruptIn.cpp: set N_GPIO and the GPIO tables for this chip"
+#endif
 
 #if (defined(FSL_FEATURE_PORT_HAS_NO_INTERRUPT) && FSL_FEATURE_PORT_HAS_NO_INTERRUPT)
 #define	kRisingEdge		kGPIO_InterruptRisingEdge
 #define	kFallingEdge	kGPIO_InterruptFallingEdge
+#define	kEitherEdge		kGPIO_InterruptEitherEdge
+#define	kLogicZero		kGPIO_InterruptLogicZero
 #else
 #define	kRisingEdge		kPORT_InterruptRisingEdge
 #define	kFallingEdge	kPORT_InterruptFallingEdge
+#define	kEitherEdge		kPORT_InterruptEitherEdge
+#define	kLogicZero		kPORT_InterruptLogicZero
 typedef void (*utick_callback_t)(void);
 #endif
 
@@ -105,6 +118,43 @@ void InterruptIn::rise( func_ptr callback )
 void InterruptIn::fall( func_ptr callback )
 {
 	regist( *callback, kFallingEdge );
+}
+
+void InterruptIn::change( func_ptr callback )
+{
+	regist( callback, kEitherEdge );
+}
+
+void InterruptIn::low( func_ptr callback )
+{
+	regist( *callback, kLogicZero );
+}
+
+void InterruptIn::disable( void )
+{
+#if (defined(FSL_FEATURE_PORT_HAS_NO_INTERRUPT) && FSL_FEATURE_PORT_HAS_NO_INTERRUPT)
+	GPIO_SetPinInterruptConfig( gpio_n, gpio_pin, kGPIO_InterruptStatusFlagDisabled );
+
+	for ( int i = 0; i < N_GPIO; i++ )
+	{
+		if ( gpio_ptr[i] == gpio_n )
+		{
+			cb_table[ i ][ gpio_pin ]	= NULL;
+			break;
+		}
+	}
+#else
+	PORT_SetPinInterruptConfig( port_n, gpio_pin, kPORT_InterruptOrDMADisabled );
+
+	for ( int i = 0; i < N_GPIO; i++ )
+	{
+		if ( gpio_ptr[i] == gpio_n )
+		{
+			cb_table[ i ][ gpio_pin ]	= NULL;
+			break;
+		}
+	}
+#endif
 }
 
 #if (defined(FSL_FEATURE_PORT_HAS_NO_INTERRUPT) && FSL_FEATURE_PORT_HAS_NO_INTERRUPT)

@@ -11,9 +11,9 @@
  * |--------------|--------------------|---------------------------------------|
  * | FRDM-MCXC444 | CPU_MCXC444VLH     | USBTX/USBRX (= D1/D0), MB_TX/MB_RX   |
  * | FRDM-MCXA153 | CPU_MCXA153VLH     | USBTX/USBRX, D1/D0, MB_TX/MB_RX      |
- * | FRDM-MCXA156 | CPU_MCXA156VLL     | USBTX/USBRX                           |
- * | FRDM-MCXN236 | CPU_MCXN236VDF     | USBTX/USBRX                           |
- * | FRDM-MCXN947 | CPU_MCXN947VDF     | USBTX/USBRX                           |
+ * | FRDM-MCXA156 | CPU_MCXA156VLL     | USBTX/USBRX, D1/D0, MB_TX/MB_RX      |
+ * | FRDM-MCXN236 | CPU_MCXN236VDF     | USBTX/USBRX, D1/D0 (= MB_TX/MB_RX)   |
+ * | FRDM-MCXN947 | CPU_MCXN947VDF     | USBTX/USBRX, MB_TX/MB_RX             |
  *
  * ### Example usage
  * @code
@@ -40,7 +40,7 @@
  *   `_tx_callback` (if attached).
  *
  * @author  Tedd OKANO
- * @license MIT
+ * @copyright MIT License
  */
 
 #ifndef R01LIB_SERIAL_H
@@ -78,6 +78,19 @@ public:
         TxIrq = 1,  /**< Transmit data register empty (TX buffer drained). */
     };
 
+    /**
+     * @brief Parity selector passed to format(). Same names as Mbed's
+     *        SerialBase::Parity; the LPUART has no forced parity, so
+     *        Forced1/Forced0 are accepted by the type but not by format().
+     */
+    enum Parity {
+        None = 0,
+        Odd,
+        Even,
+        Forced1,
+        Forced0,
+    };
+
     /** Size of the software receive ring buffer (bytes). */
     static constexpr size_t RX_RING_BUF_SIZE = 64U;
     /** Size of the software transmit ring buffer (bytes). */
@@ -107,6 +120,22 @@ public:
     virtual ~Serial();
 
     /**
+     * @brief  Route this port's TX/RX pins to the UART peripheral.
+     *
+     * Deliberately NOT done by the constructor: the global Serial/Serial1
+     * instances are constructed during static initialization, and muxing
+     * there let a port the sketch never begin()s seize its pins anyway --
+     * which on FRDM-MCXN947 collides with I3C_SDA/I3C_SCL, since Serial1
+     * shares those physical pins (see the constructor for the full story).
+     *
+     * SerialClass::begin() calls this, so Arduino sketches get it for
+     * free. Call it directly only when driving this r01lib class straight,
+     * without the Arduino wrapper. Idempotent, and a no-op if pin
+     * resolution failed.
+     */
+    void     apply_pin_mux( void );
+
+    /**
      * @brief  Change the baud rate at runtime.
      *
      * Temporarily disables interrupts, re-initialises the peripheral, then
@@ -115,6 +144,34 @@ public:
      * @param baudrate  New baud rate in bps.
      */
     void     baud( int baudrate );
+
+    /**
+     * @brief  Set the frame format. Same signature as Mbed's.
+     *
+     * Re-initialises the peripheral the same way baud() does. Received
+     * bytes that fail the parity check are dropped, as AVR's core drops
+     * them. With 7 data bits, read bytes have bit 7 cleared.
+     *
+     * Calls `panic()` for a format the LPUART can't produce: other than 7
+     * or 8 data bits, forced parity, or other than 1 or 2 stop bits.
+     *
+     * @param bits       Data bits, 7 or 8 (default 8).
+     * @param parity     `None` (default), `Odd` or `Even`.
+     * @param stop_bits  Stop bits, 1 (default) or 2.
+     */
+    void     format( int bits = 8, Parity parity = None, int stop_bits = 1 );
+
+    /**
+     * @brief  Stop the port and hand its pins back.
+     *
+     * Waits for pending output to go out, stops the receiver, drops any
+     * received bytes not yet read, and returns the TX/RX pins to plain
+     * GPIO inputs. The transmitter is left running, so a write after
+     * end() goes nowhere instead of filling the TX buffer and blocking.
+     * apply_pin_mux() and baud() bring the port back. This is what
+     * Arduino's Serial.end() does.
+     */
+    void     end( void );
 
     /**
      * @brief  Write a single character to the TX ring buffer.
@@ -139,6 +196,18 @@ public:
     int      getc( void );
 
     /**
+     * @brief  Look at the next received byte without consuming it.
+     *
+     * Only meaningful in interrupt-driven mode (after `attach(callback,
+     * RxIrq)`) -- reads from the RX ring buffer without advancing the tail.
+     * Without a callback attached there's no ring buffer to peek into, so
+     * this always returns -1.
+     *
+     * @return  Next byte as `int` (0-255), or -1 if none available.
+     */
+    int      peek( void );
+
+    /**
      * @brief  Formatted print to the serial port.
      *
      * Formats into a 256-byte stack buffer then enqueues each byte into the
@@ -158,11 +227,36 @@ public:
     bool     readable( void );
 
     /**
+     * @brief  Number of bytes waiting to be read.
+     *
+     * Returns an exact count when the RX ring buffer is active (i.e. after
+     * attach(callback, RxIrq) has been called); otherwise falls back to 0
+     * or 1, same as readable(), since there's no buffer to count.
+     */
+    size_t   available( void );
+
+    /**
      * @brief  Query whether there is space in the TX ring buffer.
      *
      * @return `true` if at least one byte can be enqueued without blocking.
      */
     bool     writable( void );
+
+    /**
+     * @brief  Number of bytes that can be written without blocking.
+     *
+     * @return Free space in the TX ring buffer, in bytes.
+     */
+    size_t   availableForWrite( void );
+
+    /**
+     * @brief  Block until all outgoing data has actually been transmitted.
+     *
+     * Waits for the TX ring buffer to drain, then waits for the LPUART's
+     * transmission-complete flag -- i.e. until the last byte has finished
+     * shifting out of hardware, not just been handed off to the peripheral.
+     */
+    void     flush( void );
 
     /**
      * @brief  Write a byte array to the TX ring buffer.
@@ -203,6 +297,22 @@ public:
     void     attach( func_ptr callback, IrqType type = RxIrq );
 
     /**
+     * @brief  Internal: write a message out of the USB serial port
+     *         (USBTX/USBRX) for panic(), without interrupts.
+     *
+     * Uses the port's Serial object if one exists, first sending out what
+     * is still waiting in its TX buffer so earlier output isn't lost, or
+     * makes one at 115200 if none does yet (a panic during static
+     * initialization, before the global one is constructed). Polls the
+     * hardware rather than going through the TX buffer and its interrupt,
+     * so it works from an interrupt handler or with interrupts off, and
+     * whether or not the port was ever begun.
+     *
+     * @param s  NUL-terminated message.
+     */
+    static void panic_write( const char *s );
+
+    /**
      * @brief  Internal: called from the global LPUART IRQ handler.
      *
      * Not intended for direct use by application code.
@@ -221,16 +331,23 @@ private:
     // ---- common helpers ----
     void tx_enqueue( uint8_t b );
     void update_irq_enables( void );
+    void reinit( void );
+    void write_polled( const char *s );
 
     // ---- hardware ----
     LPUART_Type    *_base;
     lpuart_config_t _config;
     uint32_t        _clk_freq;
     uint32_t        _instance;
-    port_mux_t      _mux;
+    port_mux_t      _tx_mux;
+    port_mux_t      _rx_mux;	// TX/RX of the same UART don't always share the
+    				// same ALT function number (e.g. MCXA153 D0/D1)
     IRQn_Type       _irqn;
     int             _tx_pin;
     int             _rx_pin;
+    uint8_t         _rx_data_mask;	// 0x7F with 7 data bits: bit 7 is then the
+    				// parity bit, or undefined
+    bool            _pins_muxed;	// apply_pin_mux() ran and end() hasn't since
 
     // ---- target-specific clock / reset fields ----
 #if defined( CPU_MCXA153VLH ) || defined( CPU_MCXA156VLL )

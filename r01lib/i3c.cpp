@@ -45,6 +45,35 @@ volatile status_t		g_completionStatus;
 
 i3c_func_ptr			g_ibi_callback	= NULL;
 
+/*
+ *  Wraps the SDK's interrupt handler, to throw away a byte that nobody
+ *  will read from the RX FIFO.
+ *
+ *  I3C_MasterTransferBlocking() turns the controller's interrupts back on
+ *  when it returns, RXPEND among them, without looking at the RX FIFO, and
+ *  I3C_MasterTransferHandleIRQ() does nothing while its handle is idle. On
+ *  FRDM-MCXN947 with three P3T1755s, a 2-byte read of a target that had
+ *  just sent an IBI came back right but left one more byte in the RX FIFO
+ *  (the same value as the last byte read). The level-triggered RXPEND then
+ *  brought the interrupt straight back, forever, and loop() never ran
+ *  again; only the LED's Ticker still ran between the interrupts.
+ *
+ *  A byte left there while the handle is idle and RXPEND is enabled
+ *  belongs to no transfer: a blocking transfer turns RXPEND off while it
+ *  runs, so the bytes it is reading are never thrown away.
+ */
+static void master_irq_handler( I3C_Type *base, void *intHandle )
+{
+	I3C_MasterTransferHandleIRQ( base, intHandle );
+
+	if ( (0 == ((i3c_master_handle_t *)intHandle)->state)	//	kIdleState, which fsl_i3c.c keeps to itself
+		&& (base->MINTSET & I3C_MINTSET_RXPEND_MASK)
+		&& (base->MDATACTRL & I3C_MDATACTRL_RXCOUNT_MASK) )
+	{
+		base->MDATACTRL |= I3C_MDATACTRL_FLUSHFB_MASK;
+	}
+}
+
 //I3C::I3C( int sda, int scl )
 I3C::I3C( int sda, int scl, uint32_t i2c_freq, uint32_t i3c_od_freq, uint32_t i3c_pp_freq )
 	: I2C( sda, scl, true )
@@ -60,12 +89,12 @@ I3C::I3C( int sda, int scl, uint32_t i2c_freq, uint32_t i3c_od_freq, uint32_t i3
 	else
 		panic( "FRDM-MCXN236 only support I3C_SDA/I3C_SCL pins for I3C" );
 #elif	CPU_MCXA156VLL
+	//	I3C_SDA/I3C_SCL are the same two pins as I2C_SDA/I2C_SCL
+	//	(D18/D19) on this board
 	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
 		;
-	else if ( (sda == I2C_SDA) && (scl == I2C_SCL) )
-		;
 	else
-		panic( "FRDM-MCXA153 supports I3C_SDA/I3C_SCL or I2C_SDA(D18)/I2C_SCL(D19) pins for I3C" );
+		panic( "FRDM-MCXA156 supports I3C_SDA/I3C_SCL (D18/D19) pins for I3C" );
 #elif 	CPU_MCXA153VLH
 	if ( (sda == I3C_SDA) && (scl == I3C_SCL) )
 		;
@@ -79,9 +108,9 @@ I3C::I3C( int sda, int scl, uint32_t i2c_freq, uint32_t i3c_od_freq, uint32_t i3
 	
 	I3C_MasterGetDefaultConfig( &masterConfig );
 
-	masterConfig.baudRate_Hz.i2cBaud          = i2c_freq    ? i2c_freq    : I2C::FREQ;
-	masterConfig.baudRate_Hz.i3cOpenDrainBaud = i3c_od_freq ? i3c_od_freq : OD_FREQ;
-	masterConfig.baudRate_Hz.i3cPushPullBaud  = i3c_pp_freq ? i3c_pp_freq : PP_FREQ;
+	masterConfig.baudRate_Hz.i2cBaud          = i2c_freq    ? i2c_freq    : (uint32_t)I2C::FREQ;
+	masterConfig.baudRate_Hz.i3cOpenDrainBaud = i3c_od_freq ? i3c_od_freq : (uint32_t)OD_FREQ;
+	masterConfig.baudRate_Hz.i3cPushPullBaud  = i3c_pp_freq ? i3c_pp_freq : (uint32_t)PP_FREQ;
 	masterConfig.enableOpenDrainStop          = false;
 	masterConfig.disableTimeout               = true;
 	
@@ -91,39 +120,122 @@ I3C::I3C( int sda, int scl, uint32_t i2c_freq, uint32_t i3c_od_freq, uint32_t i3
 
 	/* Create I3C handle. */
 	I3C_MasterTransferCreateHandle( EXAMPLE_MASTER, &g_i3c_m_handle, &masterCallback, NULL );
+	s_i3cMasterIsr	= master_irq_handler;	//	in place of I3C_MasterTransferHandleIRQ(), which it calls
 
 	first_broadcast	= true;
-	
-	DigitalInOut	_scl( sda );
-	DigitalInOut	_sda( scl );
-	
+
+	/*
+	 *  _sda/_scl here are the persistent members inherited from I2C (kept
+	 *  protected for exactly this reason -- see i2c.h), not new objects.
+	 *  I2C::I2C() never mux'd them itself (it returns early for the
+	 *  no_hw=true delegation used above), so this is the only place they
+	 *  get configured -- which also means mcxPinState's registry now
+	 *  correctly tracks these two objects as I3C's real, live SDA/SCL
+	 *  owners instead of a pair of already-destroyed throwaway locals.
+	 */
 	_scl.pin_mux( kPORT_MuxAlt10 );
 	_sda.pin_mux( kPORT_MuxAlt10 );
+
+	/*
+	 *  On FRDM-MCXN947, the pin_mux.c code that sets PORT1_16/PORT1_17's
+	 *  input buffer enable (IBE) bit for I3C1_SDA/I3C1_SCL only exists
+	 *  inside BOARD_InitDEBUG_UARTPins() -- a generated function that is
+	 *  never actually called anywhere (init_mcu() only calls
+	 *  BOARD_InitBootPins()/BOARD_InitBootClocks()/BOARD_InitBootPeripherals(),
+	 *  none of which touch these pins). PORT_SetPinMux() above only writes
+	 *  the MUX field, not IBE, so without this the pins reset-default to
+	 *  IBE disabled -- the I3C peripheral can drive them but can't sense
+	 *  the target's response. This is the same bug class as the Serial1
+	 *  D0/D1 input-buffer bug found on A153 (see arduino_serial.cpp
+	 *  history). Confirmed as the cause via GDB: with IBE left disabled,
+	 *  I3C_MasterTransferBlocking() succeeded (status 0) for writes but
+	 *  returned kStatus_I3C_Nak on every read's address phase, regardless
+	 *  of pull-up, repeated-start vs stop, or SCL frequency.
+	 */
+	_scl.input_buffer( true );
+	_sda.input_buffer( true );
 }
 
 I3C::~I3C(){
 	I3C_MasterDeinit( EXAMPLE_MASTER );
 }
 
-void I3C::frequency( uint32_t i2c_freq, uint32_t i3c_od_freq, uint32_t i3c_pp_freq )
+void I3C::apply_baudrate( void )
 {
-	i3c_baudrate_hz_t	baudRate_Hz;
-	
-	baudRate_Hz.i2cBaud				= i2c_freq    ? i2c_freq    : masterConfig.baudRate_Hz.i2cBaud;
-	baudRate_Hz.i3cOpenDrainBaud	= i3c_od_freq ? i3c_od_freq : masterConfig.baudRate_Hz.i3cOpenDrainBaud;
-	baudRate_Hz.i3cPushPullBaud  	= i3c_pp_freq ? i3c_pp_freq : masterConfig.baudRate_Hz.i3cPushPullBaud;
+	i3c_baudrate_hz_t	baudRate_Hz	= masterConfig.baudRate_Hz;
+
+	if ( bus_type == kI3C_TypeI2C )
+	{
+		/*	In I2C_MODE the SCL rate is reached through I2CBAUD, a 3-bit
+		 *	divider off the open-drain rate, so the open-drain rate has to be
+		 *	placed relative to the requested I2C rate rather than left at the
+		 *	I3C-native OD_FREQ -- otherwise everything below OD_FREQ/8 is
+		 *	unreachable and silently truncates into an unrelated, faster rate.
+		 *	See I2C_MODE_OD_RATIO in i3c.h for the measurements behind this.
+		 *
+		 *	The open-drain rate is never raised above OD_FREQ: that is what
+		 *	this bus is specified to run open-drain at, and I2C Fm+ (1MHz,
+		 *	the ceiling clamped to in frequency()) is still reachable from it.
+		 */
+		uint32_t	od	= baudRate_Hz.i2cBaud * (uint32_t)I2C_MODE_OD_RATIO;
+
+		baudRate_Hz.i3cOpenDrainBaud	= ( od > (uint32_t)OD_FREQ ) ? (uint32_t)OD_FREQ : od;
+	}
 
 	I3C_MasterSetBaudRate( EXAMPLE_MASTER, &baudRate_Hz, I3C_MASTER_CLOCK_FREQUENCY );
 }
 
+void I3C::frequency( uint32_t i2c_freq, uint32_t i3c_od_freq, uint32_t i3c_pp_freq )
+{
+	/*	Remember what was asked for, so a later mode() can re-derive the
+	 *	open-drain rate from it. These used to go straight to the hardware
+	 *	while masterConfig kept its construction-time values forever, so a
+	 *	later call passing 0 ("leave as is") reinstated the original rate
+	 *	rather than the one most recently set.
+	 */
+	if ( i2c_freq )
+	{
+		/*	Clamp rather than let an unreachable request truncate into
+		 *	something unrelated -- Wire.setClock() has no way to report a
+		 *	failure, so the nearest supported rate is the honest outcome.
+		 */
+		if ( i2c_freq < (uint32_t)I2C_MODE_MIN_FREQ )
+			i2c_freq	= (uint32_t)I2C_MODE_MIN_FREQ;
+		else if ( i2c_freq > (uint32_t)I2C_MODE_MAX_FREQ )
+			i2c_freq	= (uint32_t)I2C_MODE_MAX_FREQ;
+
+		masterConfig.baudRate_Hz.i2cBaud			= i2c_freq;
+	}
+
+	if ( i3c_od_freq )
+		masterConfig.baudRate_Hz.i3cOpenDrainBaud	= i3c_od_freq;
+
+	if ( i3c_pp_freq )
+		masterConfig.baudRate_Hz.i3cPushPullBaud	= i3c_pp_freq;
+
+	apply_baudrate();
+}
+
 void I3C::frequency( void )
 {
-	I3C_MasterSetBaudRate( EXAMPLE_MASTER, &(masterConfig.baudRate_Hz), I3C_MASTER_CLOCK_FREQUENCY );
+	masterConfig.baudRate_Hz.i2cBaud			= (uint32_t)I2C::FREQ;
+	masterConfig.baudRate_Hz.i3cOpenDrainBaud	= (uint32_t)OD_FREQ;
+	masterConfig.baudRate_Hz.i3cPushPullBaud	= (uint32_t)PP_FREQ;
+
+	apply_baudrate();
 }
 
 void I3C::mode( MODE mode )
 {
 	bus_type	= (i3c_bus_type_t)mode;
+
+	/*	The open-drain rate that suits I2C_MODE is not the one that suits
+	 *	I3C_MODE, so re-derive it here rather than leaving whichever mode ran
+	 *	last in charge of it. This matters in both directions: Wire1 switches
+	 *	to I2C_MODE at begin(), and a sketch driving this class directly can
+	 *	switch back to I3C_MODE afterwards and has to get OD_FREQ back.
+	 */
+	apply_baudrate();
 }
 
 status_t I3C::write( uint8_t targ, const uint8_t *dp, int length, bool stop )
@@ -160,6 +272,22 @@ status_t I3C::reg_xfer( i3c_direction_t dir, i3c_bus_type_t type, uint8_t targ, 
 	masterXfer.busType			= type;
 	masterXfer.flags			= stop ? kI3C_TransferDefaultFlag : kI3C_TransferNoStopFlag;
 	
+	/*	Known, pre-existing limitation (confirmed on hardware against an
+	 *	unmodified build, so this is not something the open-drain handling
+	 *	above introduced): when the *address* phase is NAKed -- probing an
+	 *	address nothing answers on, e.g. a bus scan -- no STOP reaches the
+	 *	bus. I3C_MasterTransferBlocking() emits one for a data-phase NAK,
+	 *	but the address phase is checked earlier, by the
+	 *	I3C_MasterWaitForCtrlDone() right after the START, and that path
+	 *	returns straight out. Same shape as the LPI2C bug fixed in i2c.cpp's
+	 *	write_core(), but the I3C controller does not recover the same way:
+	 *	issuing I3C_MasterStop() from here was tried and put a spurious
+	 *	repeated START on the bus ahead of the STOP, so it is deliberately
+	 *	not done pending a proper look at the controller's state machine.
+	 *
+	 *	Not reached by this bus's actual use -- the on-board sensor ACKs, and
+	 *	that path terminates correctly (verified with a logic analyzer).
+	 */
 	return I3C_MasterTransferBlocking( EXAMPLE_MASTER, &masterXfer );
 }
 

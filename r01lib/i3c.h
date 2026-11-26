@@ -8,7 +8,10 @@
  *
  *  @class I3C
  *
- *	A class for I3C bus operations
+ *	A master-mode I3C driver, derived from I2C. Supports native I3C-SDR
+ *	transactions (dynamic addressing via DAA, CCC broadcast/direct
+ *	commands, IBI) as well as running the same physical bus in legacy
+ *	I2C mode (see mode()) for targets that don't speak I3C.
  */
 
 #ifndef R01LIB_I3C_H
@@ -21,9 +24,17 @@
 #include	"i2c.h"
 #include	"fsl_i3c.h"
 
+/** when defined, reg_write()/reg_read() use their own direct
+ *  register-addressed transfer path (reg_xfer()) instead of composing a
+ *  register-address byte into a plain write()/read() the way I2C's base
+ *  implementation does.
+ */
 #define	CUSTOM_REGISTAR_XFER
 
-/** constants: CCC  */
+/** constants for the I3C Common Command Codes (CCC) used by ccc_broadcast()/
+ *  ccc_set()/ccc_get(); see the MIPI I3C specification for the full set and
+ *  their semantics.
+ */
 enum CCC
 {
 	BROADCAST_ENEC		= 0x00,
@@ -58,7 +69,44 @@ public:
 	{
 		OD_FREQ					= 4000000UL,
 		PP_FREQ					= 12500000UL,
-		DEFAULT_FREQ_SETTING	= 0
+		DEFAULT_FREQ_SETTING	= 0,
+
+		/** In I2C_MODE the SCL rate is not programmed directly: the hardware
+		 *  derives it from the open-drain rate through I2CBAUD, which is only
+		 *  3 bits wide (i2cFreq = odFreq / (I2CBAUD + 1), 0 <= I2CBAUD <= 7).
+		 *  Leaving the open-drain rate at its I3C value (OD_FREQ) therefore
+		 *  puts everything below OD_FREQ/8 out of reach, and asking for less
+		 *  than that does not fail -- the divider simply truncates into the
+		 *  3-bit field and the bus ends up running at some unrelated, much
+		 *  higher rate. Measured on FRDM-MCXN947: setClock(100000) produced
+		 *  ~2.5MHz and setClock(10000) produced ~1.25MHz, while 400kHz (the
+		 *  one rate that happens to be reachable at OD_FREQ) came out right.
+		 *
+		 *  I2C_MODE_OD_RATIO is how far the open-drain rate is put above the
+		 *  requested I2C rate while in I2C_MODE, so the divider lands at the
+		 *  top of its range instead of overflowing it. 8 (the full span of
+		 *  I2CBAUD) keeps the open-drain rate as low as possible for a given
+		 *  I2C rate, which is what leaves room at the bottom end.
+		 */
+		I2C_MODE_OD_RATIO		= 8,
+
+		/** Range of I2C_MODE SCL rates this driver will program. Requests
+		 *  outside it are clamped, rather than silently turned into an
+		 *  unrelated rate -- see the note above for what that looks like.
+		 *
+		 *  The floor is measured, not derived: on FRDM-MCXN947 the divider
+		 *  chain bottoms out around 56kHz, so asking for less simply lands
+		 *  there. (A first attempt set this to 10kHz from the register
+		 *  widths alone -- ODBAUD is 8 bits, which suggests far more range
+		 *  than the hardware actually delivers -- and 10kHz then measured
+		 *  as 56kHz on the bus. Believe the measurement.) The ceiling is
+		 *  I2C Fm+, past which OD_FREQ would have to be exceeded.
+		 *
+		 *  Accuracy across the range, on a logic analyzer: 400kHz -> 357kHz,
+		 *  100kHz -> 104kHz, floor -> ~56kHz.
+		 */
+		I2C_MODE_MIN_FREQ		= 50000UL,
+		I2C_MODE_MAX_FREQ		= 1000000UL
 	};
 	
 	/** constants for miscellaneous setting  */
@@ -81,27 +129,35 @@ public:
 	/** Destructor to free I3C resource
 	 */
 	virtual ~I3C();
-	
+
+	using I2C::frequency;	// I3C's own frequency() overloads below have different
+							// signatures from I2C::frequency(uint32_t), which would
+							// otherwise hide it from lookup through an I3C object
+
 	/** Frequency settings
 	 *
 	 * @param i2c_freq    (optional) SCL frequency in Hz for I2C operation
 	 * @param i3c_od_freq (optional) SCL frequency in Hz for I3C open-drain operation
 	 * @param i3c_pp_freq (optional) SCL frequency in Hz for I3C push-pull operation
-	 * 
-	 *  @note use zero or I3C_DEFAULT_FREQ to set default frequency
+	 *
+	 *  @note use zero or DEFAULT_FREQ_SETTING to leave a given rate at its default
 	 */
 	virtual void	frequency( uint32_t i2c_freq, uint32_t i3c_od_freq, uint32_t i3c_pp_freq );
 
-	/** All frequency settings reverted to default
+	/** All frequency settings (I2C, I3C open-drain, I3C push-pull) reverted to default
 	 */
 	virtual void	frequency( void );
 
 	/** mode setting
 	 *	I3C bus is configured to I3C-SDR, I3C-DDR or I2C
-	 *  
-	 * @param mode kI3C_TypeI3CSdr, kI3C_TypeI2C or kI3C_TypeI3CDdr
+	 *
+	 * @param mode I3C_MODE, I2C_MODE or I3CDDR_MODE
 	 */
 	virtual void 	mode( MODE mode );
+
+	using I2C::write;	// I3C only overrides the buffer-write/-read overloads
+	using I2C::read;	// below; I2C's single-byte write(uint8_t,uint8_t,bool)/
+						// read(uint8_t,bool) would otherwise be hidden
 
 	/** write transaction
 	 *
@@ -124,84 +180,117 @@ public:
 	virtual status_t	read( uint8_t targ, uint8_t *dp, int length, bool stop = STOP );
 	
 #ifdef	CUSTOM_REGISTAR_XFER
+	using I2C::reg_write;	// see the frequency() using-declaration above -- same
+	using I2C::reg_read;	// reasoning, I3C's own overloads below add a `stop` param
+
 	/** Register write (multiple byte data)
-	 *	provideds interface for register write
-	 *	
+	 *	provides interface for register write
+	 *
 	 * @param targ target address
 	 * @param reg register address
 	 * @param dp data to write
 	 * @param length data length
+	 * @param stop currently ignored -- reg_xfer() always uses its own default (STOP); kept for API-shape parity with I2C::reg_write()
 	 * @return status_t
 	 */
 	virtual status_t	reg_write( uint8_t targ, uint8_t reg, const uint8_t *dp, int length, bool stop = STOP );
 
 	/** Register read (multiple byte data)
-	 *	provideds interface for register read
-	 *	
+	 *	provides interface for register read
+	 *
 	 * @param targ target address
 	 * @param reg register address
-	 * @param dp data to write
+	 * @param dp buffer to receive the read data
 	 * @param length data length
+	 * @param stop currently ignored -- reg_xfer() always uses its own default (STOP); kept for API-shape parity with I2C::reg_read()
 	 * @return status_t
 	 */
 	virtual status_t	reg_read( uint8_t targ, uint8_t reg, uint8_t *dp, int length, bool stop = STOP );
 #endif	// CUSTOM_REGISTAR_XFER
 	
 	/** check IBI status
-	 *  
+	 *  	Non-blocking poll of whether an In-Band Interrupt has occurred
+	 *  	since the last call. Clears the pending flag on read.
+	 *
 	 * @return target address of IBI initiated device or zero if no event happened
 	 */
 	virtual uint8_t		check_IBI( void );
-	
+
 	/** set IBI callback function
-	 *  
-	 * @return target address of IBI initiated device or zero if no event happened
+	 *  	Registered function is invoked from master_ibi_callback() (the
+	 *  	SDK-facing IBI handler) whenever an IBI is serviced.
+	 *
+	 * @param fp pointer to the function to call, or nullptr to disable
 	 */
 	virtual void		set_IBI_callback( i3c_func_ptr fp );
 
 	/** CCC broadcast
-	 *  
+	 *  	Sends a Common Command Code to the broadcast address (0x7E),
+	 *  	optionally followed by data bytes.
+	 *
 	 * @param ccc CCC command
-	 * @param dp data to send
+	 * @param dp data to send along with the command (may be nullptr if length is 0)
 	 * @param length data length
+	 * @param first_time (option) force the one-time open-drain-frequency priming step ccc_broadcast() otherwise only does automatically on this instance's first broadcast
 	 * @return status_t
 	 */
 	virtual status_t	ccc_broadcast( uint8_t ccc, const uint8_t *dp, uint8_t length, bool first_time = false );
 
-	/** CCC set
-	 *  
+	/** CCC direct set
+	 *  	Broadcasts the CCC command, then writes a single data byte
+	 *  	directly to addr.
+	 *
 	 * @param ccc CCC command
-	 * @param data single byte data
+	 * @param addr target address
+	 * @param data single byte data to write
 	 * @return status_t
 	 */
 	virtual status_t	ccc_set( uint8_t ccc, uint8_t addr, uint8_t data );
 
-	/** CCC get
-	 *  
+	/** CCC direct get
+	 *  	Broadcasts the CCC command, then reads data directly from addr.
+	 *
 	 * @param ccc CCC command
-	 * @param dp data to send
+	 * @param addr target address
+	 * @param dp buffer to receive data
 	 * @param length data length
 	 * @return status_t
 	 */
 	virtual status_t	ccc_get( uint8_t ccc, uint8_t addr, uint8_t *dp, uint8_t length );
 
 	/** perform DAA procedure
-	 *  
-	 * @param address_list new address list to be assigned
+	 *  	Runs Dynamic Address Assignment, handing out addresses from
+	 *  	address_list to any devices on the bus that don't have one yet.
+	 *
+	 * @param address_list candidate address list to assign from
 	 * @param list_length address list length
-	 * @param device_list pointer to i3c_device_info_t array which is declared as static array in I3C driver
+	 * @param device_list out-parameter: set to the SDK's own static array of assigned-device info
 	 * @return int for number of devices which has newly assigned addresses (max 10)
 	 */
 	virtual int			DAA( const uint8_t *address_list, uint8_t list_length, i3c_device_info_t** device_list );
-	
-	/** master_ibi_callback
-	 *  interface function for SDK
-	 */	
+
+	/** SDK IBI (In-Band Interrupt) event callback, registered with the
+	 *  MCUXpresso SDK I3C driver at construction time. Records the
+	 *  interrupting device's address for check_IBI(), buffers any IBI
+	 *  payload data, and invokes the user callback set via
+	 *  set_IBI_callback(), if any. Not intended to be called directly.
+	 *
+	 * @param base I3C peripheral base address (SDK callback signature)
+	 * @param handle SDK master transfer handle
+	 * @param ibiType kind of IBI event
+	 * @param ibiState IBI handler state (e.g. whether a data buffer is needed)
+	 */
 	static void		master_ibi_callback( I3C_Type *base, i3c_master_handle_t *handle, i3c_ibi_type_t ibiType, i3c_ibi_state_t ibiState );
 
-	/** master_ibi_callback
-	 *  interface function for SDK
-	 */	
+	/** SDK transfer-complete callback, registered with the MCUXpresso SDK
+	 *  I3C driver at construction time. Records the outcome of an
+	 *  asynchronous transfer. Not intended to be called directly.
+	 *
+	 * @param base I3C peripheral base address (SDK callback signature)
+	 * @param handle SDK master transfer handle
+	 * @param status transfer completion status
+	 * @param userData user data pointer (unused)
+	 */
 	static void		master_callback( I3C_Type *base, i3c_master_handle_t *handle, status_t status, void *userData );
 
 protected:
@@ -209,6 +298,20 @@ protected:
 	using	I2C::scan;
 
 private:
+	/** Program the hardware from masterConfig's requested rates, applying
+	 *  whatever the current bus_type needs.
+	 *
+	 *  The open-drain rate cannot simply be left alone across a mode change:
+	 *  I3C_MODE wants it at its own OD_FREQ, while I2C_MODE needs it placed
+	 *  relative to the requested I2C rate for that rate to be reachable at
+	 *  all (see I2C_MODE_OD_RATIO). Every path that changes either the rates
+	 *  or the mode goes through here so the two stay consistent -- including
+	 *  switching back to I3C_MODE after I2C_MODE has moved the open-drain
+	 *  rate, which sketches driving this class directly (rather than through
+	 *  Wire) are free to do.
+	 */
+	void		apply_baudrate( void );
+
 	status_t	xfer( i3c_direction_t dir, i3c_bus_type_t type, uint8_t targ, uint8_t *dp, int length, bool stop = STOP );
 
 #ifdef	CUSTOM_REGISTAR_XFER

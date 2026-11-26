@@ -33,13 +33,17 @@
  *   ISR context.
  *
  * @author  Tedd OKANO
- * @license MIT
+ * @copyright MIT License
  */
 
 #ifndef R01LIB_ANALOGIN_H
 #define R01LIB_ANALOGIN_H
 
-#if defined( CPU_MCXA153VLH )
+/*
+ *  FRDM-MCXA156 uses this same class, on LPADC1 (ADC1): A0-A5 are P1_10,
+ *  P2_5, P2_3, P2_4, P1_12, P1_13, on ADC1_A8, A1, A4, A0, A10, A11.
+ */
+#if defined( CPU_MCXA153VLH ) || defined( CPU_MCXA156VLL )
 
 extern "C" {
 #include "fsl_lpadc.h"
@@ -104,6 +108,154 @@ private:
     int     _pin;
 };
 
-#endif // defined( CPU_MCXA153VLH )
+#elif defined( CPU_MCXN947VDF ) || defined( CPU_MCXN236VDF )
+
+/*
+ *  FRDM-MCXN236 uses this same class, on the same ADC0 with the same VREF
+ *  setup (the SDK's FRDM-MCXN236 LPADC polling example matches the N947
+ *  one): A0, A1, A2, A4, A5 are P4_6, P4_15, P4_16, P4_12, P4_13, on
+ *  ADC0_A3, A1, A6, A5, B5. A3 (P4_17, ADC0_B6) is left out: it is the
+ *  blue LED's pin too.
+ */
+
+/**
+ * FRDM-MCXN947 AnalogIn.
+ *
+ * | ANA()  | Logical pin | Physical pin | ADC0 channel | side |
+ * |--------|-------------|--------------|--------------|------|
+ * | A0     | -           | -            | (DISABLED_PIN, not wired) |
+ * | A1     | -           | -            | (DISABLED_PIN, not wired) |
+ * | ANA(1) | A2          | P0_14        | 14           | B    |
+ * | ANA(2) | A3          | P0_22        | 14           | A    |
+ * | ANA(3) | A4          | P0_15        | 15           | B    |
+ * | ANA(4) | A5          | P0_23        | 15           | A    |
+ *
+ * Unlike A153, N947's A-pins share ADC channel *numbers* in pairs (14/15),
+ * differentiated only by side (A153's A0-A3 all happen to be distinct
+ * channel numbers, so it never needed to care about side). Verified
+ * against NXP's own FRDM-MCXN947 SDK LPADC polling example
+ * (boards/frdmmcxn947/driver_examples/lpadc/polling) before writing this:
+ *  - N947 additionally requires SPC_EnableActiveModeAnalogModules() +
+ *    VREF_Init() before LPADC_Init() -- the VREF block supplies LPADC's
+ *    bias current here, unlike A153 where it wasn't needed.
+ *  - referenceVoltageSource is the same kLPADC_ReferenceVoltageAlt3 (VDDA).
+ *  - FSL_FEATURE_LPADC_FIFO_COUNT is 2 here (vs 1 on A153), so
+ *    LPADC_GetConvResult()/LPADC_DoResetFIFO() take an explicit FIFO index
+ *    (LPADC_DoResetFIFO0(), LPADC_GetConvResult(base, &result, 0U)).
+ */
+
+extern "C" {
+#include "fsl_lpadc.h"
+#include "fsl_clock.h"
+#include "fsl_port.h"
+#include "fsl_reset.h"
+#include "fsl_vref.h"
+#include "fsl_spc.h"
+}
+
+#include "obj.h"
+#include "io.h"
+
+/**
+ * @brief Single-shot ADC input class (FRDM-MCXN947).
+ */
+class AnalogIn : public Obj
+{
+public:
+    /**
+     * @brief  Construct and configure an analog input on the given pin.
+     *
+     * Resolves @p pin to an ADC0 channel_number/side pair, performs
+     * peripheral init (first instance only, including the VREF/SPC setup
+     * this chip needs) and per-channel `LPADC_SetConvCommandConfig`. Calls
+     * `panic()` if @p pin is not a supported analog pin (A2..A5 -- A0/A1
+     * aren't wired on this board).
+     *
+     * @param pin  Logical analog pin (e.g. `A2`..`A5`).
+     */
+    explicit AnalogIn( int pin );
+
+    /**
+     * @brief  Destroy the AnalogIn. Does not stop ADC0 (may be shared).
+     */
+    virtual ~AnalogIn();
+
+    /**
+     * @brief  Perform a single-shot conversion and return normalized value.
+     * @return Value in range 0.0 (0V) - 1.0 (VDDA).
+     */
+    float read( void );
+
+    /**
+     * @brief  Perform a single-shot conversion and return 16-bit value.
+     * @return Value in range 0 - 0xFFFF (12-bit ADC result left-scaled).
+     */
+    uint16_t read_u16( void );
+
+    /** @brief  Implicit conversion, equivalent to read(). */
+    operator float();
+
+private:
+    void     resolve_pin( int pin );
+    uint16_t sample_raw( void );   // single-shot conversion, 12-bit raw
+
+    // ---- shared peripheral state (reference-counted) ----
+    static void _acquire_peripheral( void );
+    static void _release_peripheral( void );
+    static uint8_t _instance_count;
+    static bool    _calibrated;
+
+    // ---- per-instance channel mapping ----
+    uint8_t _channel_id;      // LPADC command/slot index
+    uint8_t _channel_number;  // hardware ADC0 channel number (shared A/B pair)
+    lpadc_sample_channel_mode_t _side;  // which side of the pair this pin is
+    int     _pin;
+};
+
+#elif defined( CPU_MCXC444VLH )
+
+/*
+ *  FRDM-MCXC444 has an ADC16 (ADC0), not an LPADC: A0-A5 are PTB0, PTB1,
+ *  PTB2, PTB3, PTC2, PTC1, on ADC0_SE8, SE9, SE12, SE13, SE11, SE15
+ *  (Zephyr's MCXC444VLH-pinctrl.h). It converts at 16 bits single-ended,
+ *  so read_u16() is the conversion itself, not a scaled-up 12-bit one.
+ */
+extern "C" {
+#include "fsl_adc16.h"
+#include "fsl_port.h"
+}
+
+#include "obj.h"
+#include "io.h"
+
+/**
+ * @brief Mbed-compatible single-shot ADC input class (ADC16).
+ */
+class AnalogIn : public Obj
+{
+public:
+    /** @param pin analog pin, A0-A5 */
+    explicit AnalogIn( int pin );
+    virtual ~AnalogIn();
+
+    /** @return the input as a fraction of VREFH, 0.0-1.0 */
+    float read( void );
+    /** @return the input, 0-65535 */
+    uint16_t read_u16( void );
+    /** @return the same as read() */
+    operator float();
+
+private:
+    static void _acquire_peripheral( void );
+    static void _release_peripheral( void );
+    static uint8_t _instance_count;
+
+    uint8_t _channel;   // ADC0_SEn
+    int     _pin;
+};
+
+#else
+#error "AnalogIn.h: no analog inputs for this chip"
+#endif
 
 #endif // R01LIB_ANALOGIN_H

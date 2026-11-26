@@ -50,6 +50,29 @@ public:
 	 */
 	virtual void	fall( func_ptr callback );
 
+	/** Register callback function which is called by both edges
+	 *  (Arduino's CHANGE). A pin has one interrupt setting, so rise() then
+	 *  fall() leaves it on the falling edge only.
+	 *
+	 * @param callback pointer to callback function
+	 */
+	virtual void	change( func_ptr callback );
+
+	/** Register callback function which is called continuously while the
+	 *  pin reads logic low (level-triggered, matches classic Arduino's
+	 *  attachInterrupt(pin, isr, LOW))
+	 *
+	 * @param callback pointer to callback function
+	 */
+	virtual void	low( func_ptr callback );
+
+	/** Disable the interrupt and clear the registered callback
+	 *
+	 *  Reverses rise()/fall() -- disables the pin's interrupt/DMA request
+	 *  in hardware and removes its entry from the IRQ dispatch table.
+	 */
+	virtual void	disable( void );
+
 private:
 #if (defined(FSL_FEATURE_PORT_HAS_NO_INTERRUPT) && FSL_FEATURE_PORT_HAS_NO_INTERRUPT)
 	void	regist( func_ptr callback, gpio_interrupt_config_t type );

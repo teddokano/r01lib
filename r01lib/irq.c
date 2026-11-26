@@ -10,7 +10,7 @@
 #include	"fsl_debug_console.h"
 #include	"irq.h"
 
-#ifdef	CPU_MCXN947VDF
+#if defined( CPU_MCXN947VDF ) || defined( CPU_MCXN236VDF )
 void GPIO00_IRQHandler( void )
 {	irq_handler( 0 );
 }
@@ -46,7 +46,7 @@ void PORTC_PORTD_DriverIRQHandler( void )
 	irq_handler( 1 );
 }
 
-#else // CPU_MCXN947VDF
+#elif	CPU_MCXA153VLH
 void GPIO0_IRQHandler( void )
 {	irq_handler( 0 );
 }
@@ -63,6 +63,30 @@ void GPIO3_IRQHandler( void )
 {
 	irq_handler( 3 );
 }
-#endif // CPU_MCXN947VDF
+
+#elif	CPU_MCXA156VLL
+void GPIO0_IRQHandler( void )
+{	irq_handler( 0 );
+}
+
+void GPIO1_IRQHandler( void )
+{	irq_handler( 1 );
+}
+
+void GPIO2_IRQHandler( void )
+{	irq_handler( 2 );
+}
+
+void GPIO3_IRQHandler( void )
+{	irq_handler( 3 );
+}
+
+void GPIO4_IRQHandler( void )
+{	irq_handler( 4 );
+}
+
+#else
+#error "irq.c: no GPIO interrupt handlers for this chip -- list its GPIO banks here"
+#endif
 
 
